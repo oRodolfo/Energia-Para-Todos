@@ -53,7 +53,38 @@ famílias tenham contas de luz reduzidas ou até zeradas.
     clique em **Login** no menu.
 
 ------------------------------------------------------------------------
+## 📂 Estrutura do Projeto
 
+frontzintop_V4/
+└── frontzintop/
+├── index.html # Página inicial do site
+├── login.html # Página de login/cadastro
+├── assets/
+│ ├── css/
+│ │ ├── base.css # Estilos básicos
+│ │ ├── components.css # Estilos de componentes reutilizáveis
+│ │ ├── layout.css # Configurações de layout
+│ │ ├── styles.css # Estilo geral do site
+│ │ ├── login-css/
+│ │ │ └── styles.css # Estilos específicos da página de login
+│ │ └── sections/
+│ │ ├── _contact.css # Estilos da seção de contato
+│ │ ├── _footer.css # Estilos do rodapé
+│ │ ├── _header.css # Estilos do cabeçalho
+│ │ └── _hero.css # Estilos da seção inicial (hero)
+│ ├── images/
+│ │ ├── familia_feliz.jpg
+│ │ ├── i.a img.png
+│ │ ├── ideialogo.jpg
+│ │ ├── imagem de logo.jpg
+│ │ ├── imagem1.jpg.jpg
+│ │ ├── imagem2.jpg
+│ │ ├── imagem3.jpg
+│ │ ├── painelsolar_png.img
+│ │ └── solar-bg.svg
+│ └── js/
+│ ├── login.js # Script da página de login
+│ └── main.js # Script principal do site
 
 ------------------------------------------------------------------------
 
