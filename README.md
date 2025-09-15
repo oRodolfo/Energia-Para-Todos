@@ -21,20 +21,20 @@ famílias tenham contas de luz reduzidas ou até zeradas.
 ## 🖥️ O que o site oferece
 
 -   Página inicial com informações sobre a missão, impacto e como
-    funciona.\
--   Seção de **galeria** mostrando exemplos reais de transformação.\
--   Formulário de **contato** para quem deseja participar.\
+    funciona.
+-   Seção de **galeria** mostrando exemplos reais de transformação.
+-   Formulário de **contato** para quem deseja participar.
 -   Área de **login e cadastro** para doadores, recebedores e empresas
-    parceiras.\
+    parceiras.
 -   Opção de login social (Google e LinkedIn).
 
 ------------------------------------------------------------------------
 
 ## 🚀 Tecnologias Usadas
 
--   **HTML5** e **CSS3**\
--   **JavaScript (ES6+)**\
--   **Font Awesome & Feather Icons**\
+-   **HTML5** e **CSS3**
+-   **JavaScript (ES6+)**
+-   **Font Awesome & Feather Icons**
 -   **Google Fonts**
 
 ------------------------------------------------------------------------
@@ -47,7 +47,7 @@ famílias tenham contas de luz reduzidas ou até zeradas.
     git clone https://github.com/seu-usuario/energia-para-todos.git
     ```
 
-2.  Abra o arquivo `index.html` no navegador.\
+2.  Abra o arquivo `index.html` no navegador.
 
 3.  Para acessar a área de login/cadastro, use o arquivo `login.html` ou
     clique em **Login** no menu.
