@@ -44,7 +44,7 @@ famílias tenham contas de luz reduzidas ou até zeradas.
 1.  Clone o repositório:
 
     ``` bash
-    git clone https://github.com/seu-usuario/energia-para-todos.git
+    git clone https://github.com/oRodolfo/energia-para-todos.git
     ```
 
 2.  Abra o arquivo `index.html` no navegador.
