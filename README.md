@@ -54,7 +54,7 @@ famílias tenham contas de luz reduzidas ou até zeradas.
 
 ------------------------------------------------------------------------
 ## 📂 Estrutura do Projeto
-
+```
 frontzintop_V4/
 └── frontzintop/
 ├── index.html # Página inicial do site
@@ -85,6 +85,8 @@ frontzintop_V4/
 │ └── js/
 │ ├── login.js # Script da página de login
 │ └── main.js # Script principal do site
+```
+
 
 
 
