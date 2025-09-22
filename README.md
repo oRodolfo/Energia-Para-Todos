@@ -33,9 +33,8 @@ famílias tenham contas de luz reduzidas ou até zeradas.
 ## 🚀 Tecnologias Usadas
 
 -   **HTML5** e **CSS3**
--   **JavaScript (ES6+)**
--   **Font Awesome & Feather Icons**
--   **Google Fonts**
+-   **JavaScript**
+-   **Python**
 
 ------------------------------------------------------------------------
 
