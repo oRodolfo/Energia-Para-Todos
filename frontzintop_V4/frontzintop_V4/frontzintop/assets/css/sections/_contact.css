@@ -1,0 +1,62 @@
+/*
+    -----------------------------------
+    Arquivo: _contact.css
+    Descrição: Estilos para o formulário de contato.
+    -----------------------------------
+*/
+
+.contact .section__description {
+    display: block;
+    text-align: center;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.contact .container {
+    text-align: center;
+}
+
+.contact__form {
+    max-width: 700px;
+    margin: 2rem auto 0;
+    text-align: left;
+}
+
+.form__group {
+    margin-bottom: 1.5rem;
+}
+
+.form__group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.form__group input,
+.form__group textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: var(--color-bg-light);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--color-text);
+    font-size: 1rem;
+    font-family: var(--font);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form__group input:focus,
+.form__group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(255, 149, 0, 0.3);
+}
+
+.contact__form .btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    margin-top: 1rem;
+}
