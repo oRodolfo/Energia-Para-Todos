@@ -57,13 +57,14 @@ famílias tenham contas de luz reduzidas ou até zeradas.
 ProjetoPiEnergia/
 ├── BackEnd/
 │   └── ... (em desenvolvimento)
-├── FrontEnd/
-│   ├── assets/
-│   ├── style/
-│   ├── index.html
-│   ├── arq.js
-│   └── ...
-└── README
+FrontEnd/
+├── assets/
+│   ├── css/
+│   ├── images/
+│   └── js/
+├── index.html
+├── login.html
+└── README.md
 ```
 
 
