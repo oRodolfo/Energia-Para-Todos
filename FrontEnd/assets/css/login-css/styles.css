@@ -177,7 +177,7 @@ body {
 /* ===== TABS ===== */
 .tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 0.75rem;
@@ -279,7 +279,7 @@ body {
 
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 2fr;
     gap: 0.75rem;
 }
 
@@ -318,6 +318,12 @@ body {
 /* Campo de senha com toggle */
 .password-input {
     position: relative;
+}
+
+.password-input input {
+  padding: 12px 15px;
+  font-size: 1rem;
+  width: 100%;
 }
 
 .toggle-password {
@@ -392,18 +398,6 @@ body {
     box-shadow: 0 5px 15px rgba(255, 184, 77, 0.4);
 }
 
-.btn-social {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--color-text);
-    flex: 1;
-}
-
-.btn-social:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--accent);
-}
-
 /* ===== DIVISOR ===== */
 .divider {
     position: relative;
@@ -426,14 +420,6 @@ body {
     padding: 0 1rem;
     font-size: 0.8rem;
     color: var(--color-text-muted);
-}
-
-/* ===== LOGIN SOCIAL ===== */
-.social-login {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
 }
 
 /* ===== LINKS ===== */
@@ -467,7 +453,7 @@ body {
 }
 
 /* ===== RESPONSIVIDADE ===== */
-@media (max-width: 480px) {
+@media (max-width: 680px) {
     .container {
         padding: 0.5rem;
     }
@@ -501,10 +487,6 @@ body {
     .form-row {
         grid-template-columns: 1fr;
         gap: 0.5rem;
-    }
-    
-    .social-login {
-        grid-template-columns: 1fr;
     }
     
     .title {

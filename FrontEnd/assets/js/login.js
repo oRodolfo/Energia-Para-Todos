@@ -78,9 +78,7 @@ function initializePasswordValidation() {
     // Array com todos os IDs de campos de senha
     const passwordFields = [
         { input: 'password', indicator: 'passwordStrength' },
-        { input: 'donorPassword', indicator: 'donorPasswordStrength' },
-        { input: 'receiverPassword', indicator: 'receiverPasswordStrength' },
-        { input: 'companyPassword', indicator: 'companyPasswordStrength' }
+        { input: 'registerPassword', indicator: 'registerPasswordStrength' },
     ];
 
     passwordFields.forEach(field => {
@@ -144,44 +142,6 @@ function validatePassword(password) {
     };
 }
 
-// ===== VALIDAÇÃO DE CNPJ =====
-function validateCNPJ(cnpj) {
-    cnpj = cnpj.replace(/[^\d]+/g, '');
-    
-    if (cnpj.length !== 14) return false;
-    
-    // Verifica se todos os dígitos são iguais
-    if (/^(\d)\1+$/.test(cnpj)) return false;
-    
-    // Validação do algoritmo do CNPJ
-    let tamanho = cnpj.length - 2;
-    let numeros = cnpj.substring(0, tamanho);
-    let digitos = cnpj.substring(tamanho);
-    let soma = 0;
-    let pos = tamanho - 7;
-    
-    for (let i = tamanho; i >= 1; i--) {
-        soma += numeros.charAt(tamanho - i) * pos--;
-        if (pos < 2) pos = 9;
-    }
-    
-    let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-    if (resultado !== parseInt(digitos.charAt(0))) return false;
-    
-    tamanho = tamanho + 1;
-    numeros = cnpj.substring(0, tamanho);
-    soma = 0;
-    pos = tamanho - 7;
-    
-    for (let i = tamanho; i >= 1; i--) {
-        soma += numeros.charAt(tamanho - i) * pos--;
-        if (pos < 2) pos = 9;
-    }
-    
-    resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-    return resultado === parseInt(digitos.charAt(1));
-}
-
 // ===== FORMATAÇÃO DE CAMPOS =====
 function formatCNPJ(value) {
     value = value.replace(/\D/g, '');
@@ -200,25 +160,12 @@ function initializeForms() {
         loginForm.addEventListener('submit', handleLogin);
     }
 
-    // Formulário de Doador
-    const donorForm = document.getElementById('donorForm');
-    if (donorForm) {
-        donorForm.addEventListener('submit', handleDonorRegistration);
+    // Formulário de Cadastro
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleregisterRegistration);
     }
 
-    // Formulário de Empresa
-    const companyForm = document.getElementById('companyForm');
-    if (companyForm) {
-        companyForm.addEventListener('submit', handleCompanyRegistration);
-        
-        // Formatação do CNPJ
-        const cnpjInput = document.getElementById('cnpj');
-        if (cnpjInput) {
-            cnpjInput.addEventListener('input', (e) => {
-                e.target.value = formatCNPJ(e.target.value);
-            });
-        }
-    }
 }
 
 function handleLogin(e) {
@@ -248,7 +195,7 @@ function handleLogin(e) {
     }, 1500);
 }
 
-function handleDonorRegistration(e) {
+function handleregisterRegistration(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
@@ -326,7 +273,7 @@ function handleCompanyRegistration(e) {
         return;
     }
     
-    // Validação da senha
+    // Validação da senha - ADICIONE ESTA PARTE
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
         showNotification('A senha deve ter pelo menos 8 caracteres e incluir símbolos especiais.', 'error');
@@ -475,12 +422,6 @@ function addAccessibilityFeatures() {
             }
         }
     });
-}
-
-// Formulário de Recebedor
-const receiverForm = document.getElementById('receiverForm');
-if (receiverForm) {
-    receiverForm.addEventListener('submit', handleReceiverRegistration);
 }
 
 function handleReceiverRegistration(e) {
