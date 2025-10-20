@@ -1,0 +1,18 @@
+{
+  "python.analysis.extraPaths": [
+    "./BackEnd"
+  ],
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "127.0.0.1",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "energia_db",
+      "database": "energia_db",
+      "username": "postgres",
+      "password": "senha123"
+    }
+  ]
+}
