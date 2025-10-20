@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Energia para todos - Login</title>
-    <meta name="description" content="Plataforma de doação de energia solar - Conectando energia sustentável a quem mais precisa">
+    <meta name="description" content="Plataforma de doação de energia solar - Conectando energia sustentável a quem mais precisa" />
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     
     <!-- Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="assets/css/login-css/styles.css">
+    <link rel="stylesheet" href="/assets/css/login-css/styles.css" />
 </head>
 <body>
     <!-- Fundo dinâmico animado -->
@@ -53,7 +53,7 @@
                 <div class="tab-content">
                     <!-- Tab Login -->
                     <div class="tab-panel active" id="login">
-                        <form class="form" id="loginForm">
+                        <form class="form" id="loginForm" method="POST" action="/login">
                             <div class="form-group">
                                 <label for="email">Email</label>
                                 <input type="email" id="email" name="email" placeholder="seu@email.com" required>
@@ -96,7 +96,7 @@
                             <p>Ajude a levar energia solar para quem precisa</p>
                         </div>
 
-                        <form class="form" id="registerForm">
+                        <form class="form" id="registerForm" method="POST" action="/cadastro/doador">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="firstName">Nome</label>
@@ -140,6 +140,6 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="assets/js/login.js"></script>
+    <script src="/assets/js/login.js"></script>
 </body>
 </html>

@@ -169,59 +169,52 @@ function initializeForms() {
 }
 
 function handleLogin(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const email = formData.get('email');
-    const password = formData.get('password');
+    const form = e.target;
+    const email = form.email.value.trim();
+    const password = form.password.value;
     
     // Validações
     if (!email || !password) {
+        e.target.submit();
         showNotification('Por favor, preencha todos os campos.', 'error');
         return;
     }
     
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
+    const v = validatePassword(password);
+    if (!v.isValid) {
+        e.target.submit();
         showNotification('Senha deve ter pelo menos 8 caracteres e símbolos.', 'error');
         return;
     }
-    
-    // Simula login
-    showNotification('Fazendo login...', 'info');
-    setTimeout(() => {
-        showNotification('Login realizado com sucesso!', 'success');
-        // Aqui você faria a requisição real para o servidor
-    }, 1500);
+
+    form.action = '/login';
+    form.method = 'POST';
 }
 
 function handleregisterRegistration(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const firstName = formData.get('firstName');
-    const lastName = formData.get('lastName');
-    const email = formData.get('email');
-    const password = formData.get('password');
+    const form = e.target;
+    const firstName = form.firstName.value.trim();
+    const lastName  = form.lastName.value.trim();
+    const email     = form.email.value.trim();
+    const password  = form.password.value;
     
     // Validações
     if (!firstName || !lastName || !email || !password) {
+        e.target.submit();
         showNotification('Por favor, preencha todos os campos.', 'error');
         return;
     }
     
     // Validação da senha
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-        showNotification('A senha deve ter pelo menos 8 caracteres e incluir símbolos especiais.', 'error');
+    const v = validatePassword(password);
+    if (!v.isValid) {
+        e.target.submit();
+        showNotification('A senha deve ter pelo menos 8 caracteres e incluir símbolos.', 'error');
         return;
     }
-    
-    // Simula cadastro
-    showNotification('Criando conta de doador...', 'info');
-    setTimeout(() => {
-        showNotification('Conta criada com sucesso! Bem-vindo à nossa comunidade!', 'success');
-    }, 1500);
+
+    form.action = '/cadastro/doador';
+    form.method = 'POST';
 }
 
 function handleReceiverRegistration(e) {
