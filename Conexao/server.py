@@ -23,6 +23,9 @@ class SimpleHandler(BaseHTTPRequestHandler):
         elif path == '/crud':              
             self.servir_html('crud.html')
 
+        elif path == '/ods' or path == '/ods.html':
+            self.servir_html('ods.html')
+
         elif path == '/api/usuarios':
             return self.enviar_json({'usuarios': self.routes.listar_usuarios()})
         
