@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Energia para Todos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+
+<body>
+  <header class="header" role="banner">
+    <div class="container">
+      <a href="#inicio" class="logo" aria-label="Energia para Todos Home">⚡ Energia para Todos</a>
+      <nav class="nav" role="navigation" aria-label="Menu Principal">
+        <ul class="nav__list">
+          <li><a href="#inicio" class="nav__link">Início</a></li>
+          <li><a href="#impacto" class="nav__link">Impacto</a></li>
+          <li><a href="#sobre" class="nav__link">Sobre</a></li>
+          <li><a href="#como-funciona" class="nav__link">Como Funciona</a></li>
+          <li><a href="#contato" class="nav__link">Contato</a></li>
+          <li><a href="/login" class="nav__link login_btn">Login</a></li>
+        </ul>
+      </nav>
+      <button id="mobile_btn" aria-label="Abrir menu mobile" aria-controls="mobile_menu" aria-expanded="false">
+        <i data-feather="menu"></i>
+      </button>
+    </div>
+    <nav id="mobile_menu" class="mobile_menu" aria-label="Menu Mobile" tabindex="-1">
+      <ul id="mobile_nav_list">
+        <li class="nav_item"><a href="#inicio">Início</a></li>
+        <li class="nav_item"><a href="#impacto">Impacto</a></li>
+        <li class="nav_item"><a href="#sobre">Sobre</a></li>
+        <li class="nav_item"><a href="#como-funciona">Como Funciona</a></li>
+        <li class="nav_item"><a href="#contato">Contato</a></li>
+      </ul>
+      <a href="/login" class="btn btn--neon" style="margin-top:1rem;">Login</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="container hero__content">
+        <h1 class="hero__title">
+          Transforme Energia em <span class="hero__title-line--neon">Esperança</span>
+        </h1>
+        <p class="hero__subtitle">Conectamos quem tem excedente de energia solar com comunidades carentes, criando uma rede solidária que ilumina vidas.</p>
+        <div class="hero__actions">
+          <a href="/login" class="btn btn--neon">Doe Agora</a>
+          <a href="ods.html" class="btn btn--outline-neon">ODS 7 - Saiba Mais</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="impact" id="impacto">
+      <div class="container">
+        <span class="section__label">Nosso Impacto</span>
+        <h2 class="section__title">Energia transformando vidas</h2>
+        <div class="impact__stats">
+          <div class="impact__stat"><h4>1.2M kWh</h4><p>Distribuídos</p></div>
+          <div class="impact__stat"><h4>850</h4><p>Famílias atendidas</p></div>
+          <div class="impact__stat"><h4>120</h4><p>Comunidades alcançadas</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mission" id="sobre">
+      <div class="container">
+        <span class="section__label">Nossa Missão</span>
+        <h2 class="section__title">Democratização do acesso à <span class="highlight">energia limpa</span></h2>
+        <p class="section__description">Promovemos inclusão energética conectando doadores a famílias em vulnerabilidade social.</p>
+        <div class="mission__features">
+          <div class="feature">
+            <i data-feather="sun" class="feature__icon"></i>
+            <h4>Sustentabilidade</h4>
+            <p>Reduzindo a pegada de carbono e promovendo um futuro mais verde.</p>
+          </div>
+          <div class="feature">
+            <i data-feather="heart" class="feature__icon"></i>
+            <h4>Solidariedade</h4>
+            <p>Conectando pessoas e comunidades para gerar impacto positivo.</p>
+          </div>
+          <div class="feature">
+            <i data-feather="cpu" class="feature__icon"></i>
+            <h4>Inovação</h4>
+            <p>Usando tecnologia de ponta para otimizar a distribuição de energia.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="gallery" id="galeria">
+      <div class="container">
+        <span class="section__label">Nossa Realidade</span>
+        <h2 class="section__title">Iluminando Comunidades</h2>
+        <div class="gallery__grid">
+          <div class="gallery__item" tabindex="0" aria-label="Instalando esperança ">
+            <img src="/assets/images/imagem2.jpg" alt="Crianças sorrindo em comunidade">
+            <div class="gallery__overlay">Instalando esperança</div>
+          </div>
+          <div class="gallery__item" tabindex="0" aria-label="Energia que transforma lares">
+            <img src="/assets/images/imagem3.jpg" alt="Painel solar sendo instalado em telhado">
+            <div class="gallery__overlay">Energia que transforma lares</div>
+          </div>
+          <div class="gallery__item" tabindex="0" aria-label="O poder da tecnologia dentro da Sustentabilidade">
+            <img src="/assets/images/i.a img.png" alt="Mãos segurando uma lâmpada acesa">
+            <div class="gallery__overlay">O poder da tecnologia dentro da Sustentabilidade</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-it-works" id="como-funciona">
+      <div class="container">
+        <span class="section__label">Como Funciona</span>
+        <h2 class="section__title">Energia que gera <span class="highlight">impacto real</span></h2>
+        <div class="steps">
+          <div class="step">
+            <i data-feather="user-plus" class="step__icon"></i>
+            <h3>1. Cadastro do Doador</h3>
+            <p>Empresas e pessoas com sistemas de energia renovável se cadastram em nossa plataforma de forma simples e rápida.</p>
+          </div>
+          <div class="step">
+            <i data-feather="bar-chart-2" class="step__icon"></i>
+            <h3>2. Análise e Cálculo</h3>
+            <p>Nossa IA analisa os dados de geração e calcula o excedente de energia que pode ser doado sem custos para o gerador.</p>
+          </div>
+          <div class="step">
+            <i data-feather="send" class="step__icon"></i>
+            <h3>3. Distribuição Inteligente</h3>
+            <p>O excedente é convertido em créditos e distribuído para famílias cadastradas, reduzindo suas contas de luz.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contato">
+      <div class="container">
+        <span class="section__label">Contato</span>
+        <h2 class="section__title">Faça parte da mudança</h2>
+        <p class="section__description">Junte-se a nós e ajude a iluminar vidas. Preencha o formulário abaixo para entrarmos em contato.</p>
+        <form class="contact__form" autocomplete="on" novalidate>
+          <div class="form__group">
+            <label for="name">Nome Completo</label>
+            <input type="text" id="name" name="name" placeholder="Seu nome" required autocomplete="name">
+          </div>
+          <div class="form__group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="seu@email.com" required autocomplete="email">
+          </div>
+          <div class="form__group">
+            <label for="phone">Telefone</label>
+            <input type="tel" id="phone" name="phone" placeholder="(XX ) XXXXX-XXXX" autocomplete="tel">
+          </div>
+          <div class="form__group">
+            <label for="message">Mensagem</label>
+            <textarea id="message" name="message" rows="4" placeholder="Como podemos ajudar?" required></textarea>
+          </div>
+          <button type="submit" class="btn btn--neon">Enviar Mensagem</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer role="contentinfo">
+    <div class="container">
+      <p>© 2025 Energia Solidária - Todos os direitos reservados</p>
+    </div>
+  </footer>
+
+
+  <script src="/assets/js/main.js"></script>
+</body>
+</html>

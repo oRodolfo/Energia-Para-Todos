@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Beneficiário - Energia para Todos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/escolha-css/dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/dashboard-crud.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="header-info">
+            <span class="dashboard-icon"><i class="fas fa-home"></i></span>
+            <span class="dashboard-title">Olá, Carregando...!</span>
+            <p class="dashboard-subtitle">Bem-vindo ao seu painel de beneficiário</p>
+        </div>
+        <div class="dashboard-actions">
+            <button class="btn-dashboard btn--neon" id="btn-abrir-modal"><i class="fas fa-plus"></i> Nova Solicitação de Créditos</button>
+        </div>
+    </div>
+    <div class="dashboard-metrics">
+      <div class="dashboard-metric">
+        <div class="metric-title">Total Recebido</div>
+        <div class="metric-value" id="total-recebido">0 <span>kWh</span></div>
+      </div>
+      <div class="dashboard-metric">
+        <div class="metric-title">Posição na Fila</div>
+        <div class="metric-value" id="posicao-fila">-</div>
+      </div>
+      <div class="dashboard-metric">
+        <div class="metric-title">Consumo Médio</div>
+        <div class="metric-value" id="consumo-medio">0 <span>kWh</span></div>
+      </div>
+      <div class="dashboard-metric">
+        <div class="metric-title">Status</div>
+        <div class="metric-value" id="status-solicitacao">-</div>
+      </div>
+    </div>
+    <div class="dashboard-history">
+      <h2><i class="fas fa-file-alt"></i> Histórico de Solicitações</h2>
+      <hr>
+      <div id="historico-solicitacoes" class="dashboard-history-list">Carregando dados...</div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Solicitação -->
+  <div class="modal-overlay" id="modal-solicitacao" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Nova Solicitação</span>
+        <button class="modal-close" id="btn-fechar-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-alert modal-alert-info">
+          <i class="fas fa-lightbulb"></i>
+          <span><b>Limite máximo:</b> 0 kWh <span style="font-weight:400;">(seu consumo médio mensal)</span></span>
+        </div>
+        <label for="input-kwh-solicitado" class="modal-label">Quantidade de kWh Solicitada</label>
+        <input type="number" step="0.01" min="0" id="input-kwh-solicitado" class="modal-input" placeholder="Ex: 100.00">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dashboard btn--neon" id="btn-confirmar-solicitacao">Solicitar Créditos</button>
+      </div>
+    </div>
+  </div>
+  <script src="/assets/js/dashboard-beneficiario.js"></script>
+</body>
+</html>

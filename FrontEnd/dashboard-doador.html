@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Doador - Energia para Todos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/escolha-css/dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/dashboard-crud.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-info">
+        <span class="dashboard-icon"><i class="fas fa-sun"></i></span>
+        <span class="dashboard-title">Olá, Carregando...!</span>
+        <p class="dashboard-subtitle">Obrigado por ser um doador! Você está fazendo a diferença.</p>
+      </div>
+      <div class="dashboard-actions">
+        <button class="btn-dashboard btn--neon" id="btn-abrir-modal">
+          <i class="fas fa-bolt"></i> Registrar Nova Doação
+        </button>
+      </div>
+    </div>
+    <div class="dashboard-metrics">
+      <div class="dashboard-metric">
+        <div class="metric-title">TOTAL DOADO</div>
+        <div class="metric-value" id="total-doado">0 <span>kWh</span></div>
+      </div>
+      <div class="dashboard-metric">
+        <div class="metric-title">TOTAL DISTRIBUÍDO</div>
+        <div class="metric-value" id="total-distribuido">0 <span>kWh</span></div>
+      </div>
+      <div class="dashboard-metric">
+        <div class="metric-title">FAMÍLIAS ATENDIDAS</div>
+        <div class="metric-value" id="familias-atendidas">0</div>
+      </div>
+      <div class="dashboard-metric">
+        <div class="metric-title">CO₂ REDUZIDO</div>
+        <div class="metric-value" id="co2-reduzido">0 <span>kg</span></div>
+        <span class="metric-impact">🌱 Impacto Ambiental</span>
+      </div>
+    </div>
+    <div class="dashboard-history">
+      <h2><i class="fas fa-chart-bar"></i> Histórico de Doações</h2>
+      <hr>
+      <div id="historico-doacoes" class="dashboard-history-list">Carregando dados...</div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Doação -->
+  <div class="modal-overlay" id="modal-doacao" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Nova Doação</span>
+        <button class="modal-close" id="btn-fechar-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-alert modal-alert-success">
+          <i class="fas fa-sun"></i>
+          <span><b>Sua doação ajuda famílias!</b> <br>
+          Os créditos serão distribuídos automaticamente para beneficiários prioritários na fila.</span>
+        </div>
+        <label for="input-kwh" class="modal-label">Quantidade de kWh</label>
+        <input type="number" step="0.01" min="0" id="input-kwh" class="modal-input" placeholder="Ex: 150.00">
+        <div class="modal-hint">
+          <i class="fas fa-lightbulb"></i> Quanto mais você doar, mais famílias serão ajudadas
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dashboard btn--neon" id="btn-confirmar-doacao">Confirmar Doação</button>
+      </div>
+    </div>
+  </div>
+  <script src="/assets/js/dashboard-doador.js"></script>
+</body>
+</html>

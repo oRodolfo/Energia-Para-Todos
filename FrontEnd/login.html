@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Energia para todos - Login</title>
+    <meta name="description" content="Plataforma de doação de energia solar - Conectando energia sustentável a quem mais precisa" />
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/login-css/styles.css" />
+</head>
+<body>
+    <!-- Fundo dinâmico animado -->
+    <div class="background">
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+        <div class="floating-orb orb-3"></div>
+    </div>
+
+    <!-- Container principal -->
+    <div class="container">
+        <div class="login-card">
+            <!-- Header com logo -->
+            <div class="card-header">
+                <div class="logo">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h1 class="title">Energia para todos</h1>
+                <p class="subtitle">Conectando energia solar a quem mais precisa</p>
+            </div>
+
+            <!-- Conteúdo do card -->
+            <div class="card-content">
+                <!-- Navegação entre tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="login">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </button>
+                    <button class="tab-btn" data-tab="register">
+                        <i class="fas fa-users"></i>
+                        Cadastro
+                    </button>
+                </div>
+
+                <!-- Conteúdo das tabs -->
+                <div class="tab-content">
+                    <!-- Tab Login -->
+                    <div class="tab-panel active" id="login">
+                        <form class="form" id="loginForm" method="POST" action="/login">
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Senha</label>
+                                <div class="password-input">
+                                    <input type="password" id="password" name="password" 
+                                           placeholder="Digite sua senha" required>
+                                    <button type="button" class="toggle-password" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="password-strength" id="passwordStrength"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-neon">
+                                Entrar na Plataforma
+                            </button>
+                        </form>
+
+                        <!-- Divisor -->
+                        <div class="divider">
+                            <span>ou continue com</span>
+                        </div>
+
+                        <div class="forgot-password">
+                            <a href="#" id="forgotPassword">Esqueceu sua senha?</a>
+                        </div>  
+                    </div>
+
+                    <!-- Tab Doador -->
+                    <div class="tab-panel" id="register">
+                        <div class="tab-header">
+                            <div class="tab-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3>Cadastro</h3>
+                            <p>Ajude a levar energia solar para quem precisa</p>
+                        </div>
+
+                        <form id="registerForm" method="POST" action="/cadastro/inicial">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="firstName">Nome</label>
+                                    <input type="text" id="firstName" name="firstName" placeholder="João" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="lastName">Sobrenome</label>
+                                    <input type="text" id="lastName" name="lastName" placeholder="Silva" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerEmail">Email</label>
+                                <input type="email" id="registerEmail" name="email" placeholder="joao@email.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerPassword">Senha</label>
+                                <input type="password" id="registerPassword" name="password" 
+                                       placeholder="Digite sua senha" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-neon">
+                                Criar Conta
+                            </button>
+                        </form>
+                    </div>
+
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/assets/js/login.js"></script>
+</body>
+</html>

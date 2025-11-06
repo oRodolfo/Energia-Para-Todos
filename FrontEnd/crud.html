@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRUD de Usuários - Energia para Todos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      /* Cores principais - tons escuros com toques vibrantes */
+      --color-bg-dark: #121212;
+      --color-bg-light: #1e1e1e;
+      --color-text: #f5f5f5;
+      --color-text-muted: #b0b0b0;
+      --accent: #ff9500;
+      --accent-light: #ffb84d;
+      
+      /* Cores auxiliares */
+      --accent-dim: rgba(255, 149, 0, 0.1);
+      --accent-border: rgba(255, 149, 0, 0.3);
+      --success: #00ff88;
+      --error: #ff4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-light) 100%);
+      color: var(--color-text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Efeito de fundo animado */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--accent-dim) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .page-header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .page-header h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 40px rgba(255, 149, 0, 0.3);
+    }
+
+    .page-header p {
+      color: var(--color-text-muted);
+      font-size: 1.1rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      transition: transform 0.3s ease;
+    }
+
+    .back-link:hover {
+      transform: translateX(-5px);
+    }
+
+    /* Seções */
+    .section {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--accent-border);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .section:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px rgba(255, 149, 0, 0.15);
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .section:hover::before {
+      left: 100%;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--accent-border);
+    }
+
+    .section-icon {
+      width: 50px;
+      height: 50px;
+      background: var(--accent-dim);
+      border: 2px solid var(--accent-border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 1.5rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Formulários */
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      color: var(--color-text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input {
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--accent-border);
+      border-radius: 12px;
+      color: var(--color-text);
+      font-family: inherit;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 20px rgba(255, 149, 0, 0.2);
+    }
+
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Botões */
+    .btn {
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 25px rgba(255, 149, 0, 0.5);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--error), #cc0000);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 25px rgba(255, 68, 68, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Lista de usuários */
+    #lista {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--accent-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--color-text-muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    #lista::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    #lista::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+    }
+
+    #lista::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 10px;
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .loading.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--accent-border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Alertas */
+    .alert {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      padding: 1.5rem 2rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      z-index: 9999;
+      animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      max-width: 400px;
+      backdrop-filter: blur(10px);
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(120%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .alert-success {
+      background: rgba(0, 255, 136, 0.1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    .alert-error {
+      background: rgba(255, 68, 68, 0.1);
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .alert-info {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .alert i {
+      font-size: 1.5rem;
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+
+      .section {
+        padding: 1.5rem;
+      }
+
+      .section-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .alert {
+        right: 1rem;
+        left: 1rem;
+        max-width: none;
+      }
+    }
+
+    /* Estados vazios */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--color-text-muted);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      color: var(--accent-border);
+      margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+      color: var(--color-text);
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">
+      <i class="fas fa-arrow-left"></i>
+      Voltar ao Início
+    </a>
+
+    <div class="page-header">
+      <h1><i class="fas fa-bolt"></i> CRUD de Usuários</h1>
+      <p>Gerencie usuários da plataforma Energia para Todos</p>
+    </div>
+
+    <!-- SEÇÃO: LISTAR USUÁRIOS -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <i class="fas fa-list"></i>
+        </div>
+        <h2>Listar Usuários</h2>
+      </div>
+      
+      <button id="btn-listar" class="btn btn-primary">
+        <span><i class="fas fa-sync-alt"></i> Carregar Usuários</span>
+      </button>
+      
+      <div class="loading" id="loading-lista">
+        <div class="spinner"></div>
+        <span>Carregando dados...</span>
+      </div>
+      
+      <div id="lista" style="margin-top:16px;"></div>
+    </section>
+
+    <!-- SEÇÃO: ATUALIZAR DADOS -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <i class="fas fa-edit"></i>
+        </div>
+        <h2>Atualizar Dados do Usuário</h2>
+      </div>
+      
+      <form id="form-atualizar" class="form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="id_usuario">
+              <i class="fas fa-hashtag"></i> ID do Usuário
+            </label>
+            <input 
+              type="number" 
+              id="id_usuario" 
+              name="id_usuario" 
+              placeholder="Ex: 1" 
+              required
+              min="1"
+            >
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nome">
+              <i class="fas fa-user"></i> Nome Completo
+            </label>
+            <input 
+              type="text" 
+              id="nome" 
+              name="nome" 
+              placeholder="João Silva Santos" 
+              required
+            >
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">
+              <i class="fas fa-envelope"></i> Email
+            </label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              placeholder="joao@exemplo.com" 
+              required
+            >
+          </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+          <span><i class="fas fa-save"></i> Atualizar Dados</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- SEÇÃO: ALTERAR SENHA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <i class="fas fa-key"></i>
+        </div>
+        <h2>Alterar Senha</h2>
+      </div>
+      
+      <form id="form-alterar-senha" class="form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="login">
+              <i class="fas fa-at"></i> Email de Login
+            </label>
+            <input 
+              type="email" 
+              id="login" 
+              name="login" 
+              placeholder="seu@email.com" 
+              required
+            >
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="senha_atual">
+              <i class="fas fa-lock"></i> Senha Atual
+            </label>
+            <input 
+              type="password" 
+              id="senha_atual" 
+              name="senha_atual" 
+              placeholder="••••••••" 
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="senha_nova">
+              <i class="fas fa-lock-open"></i> Nova Senha
+            </label>
+            <input 
+              type="password" 
+              id="senha_nova" 
+              name="senha_nova" 
+              placeholder="••••••••" 
+              required
+            >
+          </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+          <span><i class="fas fa-shield-alt"></i> Alterar Senha</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- SEÇÃO: EXCLUIR USUÁRIO -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <i class="fas fa-trash-alt"></i>
+        </div>
+        <h2>Excluir Usuário</h2>
+      </div>
+      
+      <form id="form-excluir" class="form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email-excluir">
+              <i class="fas fa-user-times"></i> Email do Usuário
+            </label>
+            <input 
+              type="email" 
+              id="email-excluir" 
+              name="email" 
+              placeholder="usuario@excluir.com" 
+              required
+            >
+          </div>
+        </div>
+        
+        <button type="submit" class="btn btn-danger">
+          <span><i class="fas fa-exclamation-triangle"></i> Excluir Usuário</span>
+        </button>
+        
+        <p style="color: var(--text-secondary); text-align: center; margin-top: 1rem;">
+          <i class="fas fa-info-circle"></i> Atenção: Esta ação é irreversível!
+        </p>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    // Função para mostrar alertas
+    function mostrarAlerta(mensagem, tipo = 'info') {
+      const iconMap = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+      };
+
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${tipo}`;
+      alert.innerHTML = `
+        <i class="fas ${iconMap[tipo]}"></i>
+        <span>${mensagem}</span>
+      `;
+      document.body.appendChild(alert);
+      
+      setTimeout(() => {
+        alert.style.animation = 'slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+        setTimeout(() => alert.remove(), 500);
+      }, 5000);
+    }
+
+    // LISTAR USUÁRIOS - Tabela interativa com busca, ordenação e ações por linha
+    document.getElementById('btn-listar').addEventListener('click', async () => {
+      const loading = document.getElementById('loading-lista');
+      const lista = document.getElementById('lista');
+
+      try {
+        loading.classList.add('active');
+        lista.innerHTML = '';
+
+        const response = await fetch('/api/usuarios', { method: 'GET' });
+        const data = await response.json();
+
+        if (data.usuarios && data.usuarios.length > 0) {
+          const usuarios = data.usuarios;
+
+          // Cria controles: busca
+          const controls = document.createElement('div');
+          controls.style.display = 'flex';
+          controls.style.justifyContent = 'space-between';
+          controls.style.alignItems = 'center';
+          controls.style.marginBottom = '12px';
+
+          const left = document.createElement('div');
+          const inputBusca = document.createElement('input');
+          inputBusca.type = 'search';
+          inputBusca.placeholder = '🔎 Buscar por nome, email ou ID...';
+          inputBusca.style.padding = '10px';
+          inputBusca.style.borderRadius = '10px';
+          inputBusca.style.border = '1px solid rgba(255,255,255,0.06)';
+          inputBusca.style.background = 'rgba(255,255,255,0.02)';
+          inputBusca.style.color = 'var(--color-text)';
+          inputBusca.style.width = '360px';
+
+          left.appendChild(inputBusca);
+          controls.appendChild(left);
+
+          lista.appendChild(controls);
+
+          // Monta tabela
+          const wrapper = document.createElement('div');
+          wrapper.style.overflow = 'auto';
+          wrapper.style.borderRadius = '12px';
+          wrapper.style.border = '1px solid rgba(255,149,0,0.08)';
+
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.borderCollapse = 'collapse';
+          table.style.fontSize = '0.95rem';
+
+          const thead = document.createElement('thead');
+          thead.style.background = 'rgba(255,149,0,0.06)';
+          thead.style.color = 'var(--accent)';
+          thead.style.fontWeight = '700';
+
+          const headerRow = document.createElement('tr');
+          const headers = [
+            { key: 'id_usuario', label: 'ID' },
+            { key: 'nome', label: 'Nome' },
+            { key: 'email', label: 'Email' },
+            { key: 'senha_hash', label: 'Senha (hash)' },
+            { key: 'id_doador', label: 'ID Doador' },
+            { key: 'id_beneficiario', label: 'ID Benef.' },
+            { key: 'data_ultimo_login', label: 'Último Login' },
+            { key: 'ultima_acao', label: 'Última Ação' }
+          ];
+
+          headers.forEach(h => {
+            const th = document.createElement('th');
+            th.style.padding = '10px';
+            th.style.textAlign = 'left';
+            th.style.cursor = h.sortable === false ? 'default' : 'pointer';
+            th.textContent = h.label;
+            if (h.sortable !== false) {
+              th.dataset.key = h.key;
+              th.addEventListener('click', () => {
+                sortTableBy(h.key);
+              });
+            }
+            headerRow.appendChild(th);
+          });
+
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement('tbody');
+
+          function renderRows(list) {
+            tbody.innerHTML = '';
+            list.forEach(u => {
+              const tr = document.createElement('tr');
+              tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+              tr.style.padding = '8px 0';
+              tr.dataset.id = u.id_usuario;
+              tr.dataset.senha = u.senha_hash || '';
+              tr.dataset.ultimaacao = u.ultima_acao || '';
+
+              const tdId = document.createElement('td');
+              tdId.style.padding = '8px';
+              tdId.textContent = u.id_usuario;
+
+              const tdNome = document.createElement('td');
+              tdNome.style.padding = '8px';
+              tdNome.textContent = u.nome || '-';
+
+              const tdEmail = document.createElement('td');
+              tdEmail.style.padding = '8px';
+              tdEmail.textContent = u.email || '-';
+
+              const tdSenha = document.createElement('td');
+              tdSenha.style.padding = '8px';
+              tdSenha.style.fontFamily = 'monospace';
+              tdSenha.style.fontSize = '0.8rem';
+              tdSenha.textContent = u.senha_hash ? u.senha_hash.substring(0, 32) + '...' : '-';
+
+              const tdIdDoador = document.createElement('td');
+              tdIdDoador.style.padding = '8px';
+              tdIdDoador.textContent = u.id_doador || '-';
+
+              const tdIdBenef = document.createElement('td');
+              tdIdBenef.style.padding = '8px';
+              tdIdBenef.textContent = u.id_beneficiario || '-';
+
+              const tdUltLogin = document.createElement('td');
+              tdUltLogin.style.padding = '8px';
+              tdUltLogin.textContent = u.data_ultimo_login ? new Date(u.data_ultimo_login).toLocaleString('pt-BR') : '-';
+
+              const tdUltAcao = document.createElement('td');
+              tdUltAcao.style.padding = '8px';
+              tdUltAcao.textContent = u.ultima_acao || '-';
+
+              tr.appendChild(tdId);
+              tr.appendChild(tdNome);
+              tr.appendChild(tdEmail);
+              tr.appendChild(tdSenha);
+              tr.appendChild(tdIdDoador);
+              tr.appendChild(tdIdBenef);
+              tr.appendChild(tdUltLogin);
+              tr.appendChild(tdUltAcao);
+
+              tbody.appendChild(tr);
+            });
+          }
+
+          renderRows(usuarios);
+
+          table.appendChild(tbody);
+          wrapper.appendChild(table);
+          lista.appendChild(wrapper);
+
+          // Funções de ordenação/filtro
+          let currentSort = { key: 'id_usuario', asc: false };
+
+          function sortTableBy(key) {
+            const asc = currentSort.key === key ? !currentSort.asc : true;
+            currentSort = { key, asc };
+            const sorted = usuarios.slice().sort((a, b) => {
+              const va = (a[key] === null || a[key] === undefined) ? '' : a[key];
+              const vb = (b[key] === null || b[key] === undefined) ? '' : b[key];
+              if (!isNaN(Date.parse(va)) && !isNaN(Date.parse(vb))) {
+                return currentSort.asc ? new Date(va) - new Date(vb) : new Date(vb) - new Date(va);
+              }
+              if (typeof va === 'number' || typeof vb === 'number') {
+                return currentSort.asc ? (va - vb) : (vb - va);
+              }
+              return currentSort.asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+            });
+            renderRows(sorted);
+          }
+
+          inputBusca.addEventListener('input', () => {
+            const q = inputBusca.value.toLowerCase().trim();
+            if (!q) {
+              renderRows(usuarios);
+              return;
+            }
+            const filtered = usuarios.filter(u => {
+              return String(u.id_usuario).includes(q)
+                || (u.nome || '').toLowerCase().includes(q)
+                || (u.email || '').toLowerCase().includes(q);
+            });
+            renderRows(filtered);
+          });
+
+          mostrarAlerta(`✓ ${usuarios.length} usuários carregados! Tabela interativa pronta.`, 'success');
+        } else {
+          lista.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><h3>Nenhum usuário encontrado</h3><p>Cadastre novos usuários para vê-los aqui</p></div>';
+          mostrarAlerta('Nenhum usuário encontrado no sistema', 'info');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        lista.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Erro ao carregar</h3><p>${error.message}</p></div>`;
+        mostrarAlerta('Erro ao carregar usuários do banco de dados', 'error');
+      } finally {
+        loading.classList.remove('active');
+      }
+    });
+
+    // ATUALIZAR DADOS
+    document.getElementById('form-atualizar').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Atualizando...</span>';
+        
+        const formData = new FormData(form);
+        const body = new URLSearchParams(formData).toString();
+
+        const response = await fetch('/usuario/atualizar-dados', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body
+        });
+
+        const data = await response.json();
+        
+        if (data.sucesso) {
+          mostrarAlerta('✓ ' + (data.mensagem || 'Dados atualizados com sucesso!'), 'success');
+          form.reset();
+        } else {
+          mostrarAlerta('✗ ' + (data.mensagem || 'Erro ao atualizar dados'), 'error');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('✗ Erro ao processar requisição: ' + error.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
+
+    // ALTERAR SENHA
+    document.getElementById('form-alterar-senha').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Alterando...</span>';
+        
+        const formData = new FormData(form);
+        const body = new URLSearchParams(formData).toString();
+
+        const response = await fetch('/usuario/alterar-senha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body
+        });
+
+        const data = await response.json();
+        
+        if (data.sucesso) {
+          mostrarAlerta('✓ ' + (data.mensagem || 'Senha alterada com sucesso!'), 'success');
+          form.reset();
+        } else {
+          mostrarAlerta('✗ ' + (data.mensagem || 'Erro ao alterar senha'), 'error');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('✗ Erro ao processar requisição: ' + error.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
+
+    // EXCLUIR USUÁRIO
+    document.getElementById('form-excluir').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = e.target.querySelector('[name="email"]').value;
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      
+      if (!confirm(`⚠️ ATENÇÃO CRÍTICA\n\nVocê está prestes a excluir PERMANENTEMENTE o usuário:\n\n📧 ${email}\n\n❌ Esta ação NÃO PODE ser desfeita!\n❌ Todos os dados serão perdidos!\n\nDeseja realmente continuar?`)) {
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Excluindo...</span>';
+        
+        const formData = new FormData(e.target);
+        const body = new URLSearchParams(formData).toString();
+
+        const response = await fetch('/usuario/excluir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body
+        });
+
+        const data = await response.json();
+        
+        if (data.sucesso) {
+          mostrarAlerta('✓ ' + (data.mensagem || 'Usuário excluído com sucesso!'), 'success');
+          e.target.reset();
+        } else {
+          mostrarAlerta('✗ ' + (data.mensagem || 'Erro ao excluir usuário'), 'error');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('✗ Erro ao processar requisição: ' + error.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
+  </script>
+</body>
+</html>

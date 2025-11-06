@@ -1,0 +1,140 @@
+/*
+    -----------------------------------
+    Arquivo: _header.css
+    Descrição: Estilos para o cabeçalho fixo.
+    -----------------------------------
+*/
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(18, 18, 18, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 149, 0, 0.2);
+    z-index: 1000;
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.nav__list {
+    display: flex; 
+    list-style: none; 
+    gap: 2rem; 
+    margin: 0;
+    padding: 0;
+}
+
+/*.login_btn {
+  background-color: var(--gradient-accent);
+  border: solid yellow;
+  border-radius: 10px;
+}*/
+
+#mobile_menu,
+#mobile_btn {
+    display: none;
+}
+
+#mobile_btn svg {
+  color: var(--accent);      /* Usando sua variável laranja */
+  stroke: var(--accent);     /* Garante que as linhas fiquem laranja */
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 900px) {
+    .mobile_menu {
+      display: none;
+      position: absolute;
+      top: 100%; left: 0; right: 0;
+      background: #181818;
+      padding: 2rem 1rem;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      z-index: 999;
+      text-align: center;
+    }
+    .mobile_menu.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #mobile_nav_list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
+    #mobile_nav_list .nav_item {
+      list-style: none;
+    }
+    #mobile_nav_list .nav_item a {
+      color: var(--color-text);
+      font-size: 1.15rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 0.5rem 0;
+      transition: color 0.3s;
+      border-radius: 6px;
+      display: block;
+    }
+    #mobile_nav_list .nav_item a:hover,
+    #mobile_nav_list .nav_item a:focus {
+      color: var(--accent);
+      background: rgba(255, 149, 0, 0.07);
+      outline: none;
+    }
+    .mobile_menu .btn {
+      margin-top: 1.5rem;
+      width: 180px;
+      font-size: 1.15rem;
+      box-shadow: 0 0 18px rgba(255,149,0,0.16);
+    }
+    
+    .nav__list{
+        display: none;
+    }
+    
+    #mobile_btn{
+        display: block;
+        border: none;
+        background-color: transparent;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    #mobile_menu.active{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #mobile_nav_list{
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 12px 0px;
+    }
+
+    #mobile_nav_list .nav_item{
+        list-style: none;
+        text-align: center;
+    }
+
+}

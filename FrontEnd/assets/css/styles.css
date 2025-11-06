@@ -1,0 +1,21 @@
+/*
+    -----------------------------------
+    Arquivo: styles.css
+    Descrição: Arquivo principal que importa todos os estilos.
+    -----------------------------------
+*/
+
+/* 1. Estilos Base (Variáveis e resets globais) */
+@import url('base.css');
+
+/* 2. Estilos de Layout (Estrutura geral da página) */
+@import url('layout.css');
+
+/* 3. Estilos de Componentes (Elementos reutilizáveis) */
+@import url('components.css');
+
+/* 4. Estilos de Seções (Blocos específicos da página) */
+@import url('sections/_header.css');
+@import url('sections/_hero.css');
+@import url('sections/_contact.css');
+@import url('sections/_footer.css');

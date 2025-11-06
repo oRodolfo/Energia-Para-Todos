@@ -1,0 +1,39 @@
+/*
+    -----------------------------------
+    Arquivo: _hero.css
+    Descrição: Estilos para a seção de destaque (Hero).
+    -----------------------------------
+*/
+
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 6rem 2rem;
+}
+
+.hero__content {
+    max-width: 650px;
+}
+
+.hero__title {
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+}
+
+.hero__title-line--neon {
+    color: var(--accent);
+}
+
+.hero__subtitle {
+    color: var(--color-text-muted);
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.hero__actions {
+    display: flex;
+    gap: 1rem;
+}
