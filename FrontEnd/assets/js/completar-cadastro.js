@@ -1,23 +1,119 @@
-// /assets/js/completar-cadastro.js
 document.addEventListener('DOMContentLoaded', () => {
   init();
 });
 
+function criarModalAlerta(opcoes = {}) {
+  const {
+    title = 'Aviso',
+    message = 'Mensagem padrão',
+    type = 'info',
+    onClose = null,
+    buttons = null
+  } = opcoes;
+
+  // Remove modal anterior se existir
+  const modalAnterior = document.getElementById('cc-modal-alert');
+  if (modalAnterior) {
+    modalAnterior.remove();
+  }
+
+  // Cria estrutura do modal
+  const modal = document.createElement('div');
+  modal.id = 'cc-modal-alert';
+  modal.className = 'cc-modal-overlay';
+
+  const icones = {
+    'success': '✓',
+    'error': '✕',
+    'warning': '⚠',
+    'info': 'ℹ'
+  };
+
+  const conteudo = document.createElement('div');
+  conteudo.className = `cc-modal-content cc-modal-${type}`;
+
+  // Cabeçalho simples com ícone e título
+  const header = document.createElement('div');
+  header.className = 'cc-modal-header';
+  header.innerHTML = `
+    <span class="cc-modal-icon">${icones[type]}</span>
+    <h3 class="cc-modal-title">${title}</h3>
+  `;
+
+  // Corpo com mensagem
+  const body = document.createElement('div');
+  body.className = 'cc-modal-body';
+  body.textContent = message;
+
+  // Rodapé com botões
+  const footer = document.createElement('div');
+  footer.className = 'cc-modal-footer';
+
+  if (buttons && Array.isArray(buttons)) {
+    buttons.forEach(btn => {
+      const botao = document.createElement('button');
+      botao.className = `cc-modal-btn ${btn.class || 'cc-modal-btn-primary'}`;
+      botao.textContent = btn.label;
+      botao.onclick = () => {
+        if (btn.onclick) btn.onclick();
+        fecharModalAlerta();
+        if (onClose) onClose(btn.value);
+      };
+      footer.appendChild(botao);
+    });
+  } else {
+    const btnOk = document.createElement('button');
+    btnOk.className = 'cc-modal-btn cc-modal-btn-primary';
+    btnOk.textContent = 'OK';
+    btnOk.onclick = () => {
+      fecharModalAlerta();
+      if (onClose) onClose();
+    };
+    footer.appendChild(btnOk);
+  }
+
+  conteudo.appendChild(header);
+  conteudo.appendChild(body);
+  conteudo.appendChild(footer);
+  modal.appendChild(conteudo);
+
+  document.body.appendChild(modal);
+
+  // Animação de entrada
+  requestAnimationFrame(() => {
+    modal.classList.add('cc-modal-show');
+  });
+
+  return modal;
+}
+
 async function init() {
   try {
-    const form      = document.getElementById('form-cadastro');
+    const form = document.getElementById('form-cadastro');
     const camposDiv = document.getElementById('campos-dinamicos');
-    const titulo    = document.getElementById('titulo-cadastro');
+    const titulo = document.getElementById('titulo-cadastro');
     const subtitulo = document.getElementById('subtitulo-cadastro');
 
-    // 1) Buscar dados do usuário
-    console.log('Buscando perfil do usuário...');
-    const meResp = await fetch('/api/meu-perfil');
+    const meResp = await fetch('/api/meu-perfil', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (meResp.status === 401) {
-      console.log('Usuário não autenticado, redirecionando...');
-      alert('Sua sessão expirou. Faça login novamente.');
-      window.location.href = '/login';
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '❌ Sessão expirada', 
+          message: 'Sua sessão expirou. Por favor, faça login novamente.', 
+          type: 'error',
+          onClose: () => {
+            window.location.href = '/login';
+          }
+        });
+      } else {
+        window.location.href = '/login';
+      }
       return;
     }
     
@@ -26,90 +122,58 @@ async function init() {
     }
     
     const me = await meResp.json();
-    console.log('Perfil recebido:', me);
 
     if (!me.sucesso) {
-      console.log('Erro na resposta:', me.mensagem);
-      alert(me.mensagem || 'Erro ao carregar perfil');
-      window.location.href = me.redirect || '/login';
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '❌ Erro', 
+          message: me.mensagem || 'Erro ao carregar perfil', 
+          type: 'error',
+          onClose: () => window.location.href = '/login'
+        });
+      } else {
+        window.location.href = '/login';
+      }
       return;
     }
 
-    // 2) Verificar se usuário está logado
-    if (!me || !me.usuario_id) {
-      alert('Usuário não autenticado. Faça login novamente.');
-      location.href = '/login';
-      return;
-    }
-
-    // 3) Construir interface baseada no tipo
     const tipo = me?.tipo;
 
-    // Se ainda não tem tipo, mostrar seleção
-    if (!tipo || tipo === 'null' || tipo === null) {
-      mostrarSelecaoPerfil(me, camposDiv, form);
+    if (!tipo || tipo === 'null' || tipo === null || tipo === 'NOVO') {
+      // Sem tipo definido - redireciona para seleção
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Perfil não definido', 
+          message: 'Por favor, selecione seu perfil antes de continuar.', 
+          type: 'warning',
+          onClose: () => window.location.href = '/selecionar-perfil'
+        });
+      } else {
+        window.location.href = '/selecionar-perfil';
+      }
     } else if (tipo === 'DOADOR') {
       mostrarFormularioDoador(me, camposDiv, form, titulo, subtitulo);
     } else if (tipo === 'BENEFICIARIO') {
       mostrarFormularioBeneficiario(me, camposDiv, form, titulo, subtitulo);
     } else {
-      alert('Tipo de perfil inválido.');
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '❌ Erro', 
+          message: 'Tipo de perfil inválido.', 
+          type: 'error' 
+        });
+      }
     }
 
   } catch (err) {
     console.error('Erro ao inicializar página:', err);
-    alert('Falha ao carregar a página. Verifique o console (F12).');
-  }
-}
-
-// ========================================
-// SELEÇÃO DE PERFIL (se ainda não definiu)
-// ========================================
-function mostrarSelecaoPerfil(me, camposDiv, form) {
-  document.getElementById('titulo-cadastro').textContent = 'Escolha seu Perfil';
-  document.getElementById('subtitulo-cadastro').textContent = 'Você deseja ser Doador ou Beneficiário?';
-
-  camposDiv.innerHTML = `
-    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-      <button type="button" id="btn-doador" class="btn" style="flex: 1;">
-        🌞 Sou Doador
-      </button>
-      <button type="button" id="btn-beneficiario" class="btn" style="flex: 1; background: linear-gradient(135deg, #00d4ff, #0099cc);">
-        🏠 Sou Beneficiário
-      </button>
-    </div>
-  `;
-
-  // Esconder botão de submit
-  form.querySelector('button[type="submit"]').style.display = 'none';
-
-  // Eventos dos botões
-  document.getElementById('btn-doador').onclick = async () => {
-    await definirPerfil('DOADOR');
-  };
-
-  document.getElementById('btn-beneficiario').onclick = async () => {
-    await definirPerfil('BENEFICIARIO');
-  };
-}
-
-async function definirPerfil(tipo) {
-  try {
-    const resp = await fetch('/api/perfil/escolher', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo })
-    });
-
-    const data = await resp.json();
-
-    if (data.sucesso) {
-      location.reload(); // Recarrega para mostrar formulário correto
-    } else {
-      alert(data.mensagem || 'Erro ao definir perfil');
+    if (window.showModalAlert) {
+      await window.showModalAlert({ 
+        title: '❌ Erro', 
+        message: 'Falha ao carregar a página. Verifique sua conexão e tente novamente.', 
+        type: 'error' 
+      });
     }
-  } catch (err) {
-    alert('Erro de conexão');
   }
 }
 
@@ -153,9 +217,8 @@ function mostrarFormularioDoador(me, camposDiv, form, titulo, subtitulo) {
 
   const classEl = document.getElementById('classificacao');
   const grupoPJ = document.getElementById('grupo-pj');
-  const cnpjEl  = document.getElementById('cnpj');
+  const cnpjEl = document.getElementById('cnpj');
 
-  // Mostrar/ocultar campos PJ
   const togglePJ = () => {
     if (classEl.value === 'PESSOA_JURIDICA') {
       grupoPJ.classList.remove('cc-hide');
@@ -167,61 +230,114 @@ function mostrarFormularioDoador(me, camposDiv, form, titulo, subtitulo) {
   classEl.addEventListener('change', togglePJ);
   togglePJ();
 
-  // Máscara de CNPJ
   if (cnpjEl) {
     cnpjEl.addEventListener('input', () => {
       let v = cnpjEl.value.replace(/[^\d]/g, '').slice(0, 14);
-      if (v.length >= 3)  v = v.replace(/^(\d{2})(\d)/, '$1.$2');
-      if (v.length >= 6)  v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-      if (v.length >= 9)  v = v.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4');
+      if (v.length >= 3) v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+      if (v.length >= 6) v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+      if (v.length >= 9) v = v.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4');
       if (v.length >= 13) v = v.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
       cnpjEl.value = v;
     });
   }
 
-  // Submit
   form.onsubmit = async (e) => {
     e.preventDefault();
 
     const classificacao = classEl.value;
-    const payload = new URLSearchParams();
-    payload.append('classificacao', classificacao);
+    let razao_social = '';
+    let cnpj = '';
 
     if (classificacao === 'PESSOA_JURIDICA') {
-      const razao = (document.getElementById('razao_social').value || '').trim();
-      const cnpj  = (document.getElementById('cnpj').value || '').replace(/[^\d]/g, '');
+      razao_social = (document.getElementById('razao_social').value || '').trim();
+      cnpj = (document.getElementById('cnpj').value || '').replace(/[^\d]/g, '');
       
-      if (!razao || !cnpj || cnpj.length !== 14) {
-        alert('Informe Razão Social e CNPJ válido (14 dígitos).');
+      if (!razao_social || !cnpj || cnpj.length !== 14) {
+        if (window.showModalAlert) {
+          await window.showModalAlert({ 
+            title: '⚠️ Campos Obrigatórios', 
+            message: 'Por favor, preencha a Razão Social e um CNPJ válido (14 dígitos).', 
+            type: 'warning' 
+          });
+        }
         return;
       }
-      
-      payload.append('razao_social', razao);
-      payload.append('cnpj', cnpj);
     }
 
     try {
       const resp = await fetch('/api/perfil/completar/doador', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          classificacao,
-          razao_social: classificacao === 'PESSOA_JURIDICA' ? razao : undefined,
-          cnpj: classificacao === 'PESSOA_JURIDICA' ? cnpj : undefined
+          classificacao: classificacao,
+          razao_social: classificacao === 'PESSOA_JURIDICA' ? razao_social : null,
+          cnpj: classificacao === 'PESSOA_JURIDICA' ? cnpj : null
         })
       });
 
       const data = await resp.json();
 
       if (data.sucesso) {
-        alert('Cadastro completo!');
-        location.href = data.redirect || '/painel-doador';
-      } else {
-        alert(data.mensagem || 'Erro ao salvar.');
+        if (window.showModalAlert) {
+          await window.showModalAlert({ 
+            title: '🎉 Cadastro Concluído', 
+            message: 'Seu cadastro foi completado com sucesso! Bem-vindo ao painel de doador.', 
+            type: 'success',
+            onClose: () => {
+              window.location.href = '/painel-doador';
+            }
+          });
+        } else {
+          window.location.href = '/painel-doador';
+        }
+        } else {
+          // Tratamento específico para duplicação de CNPJ/Razão Social
+          const mensagemErro = data.mensagem || '';
+          const ehDuplicacao = mensagemErro.toLowerCase().includes('unique') || 
+                              mensagemErro.toLowerCase().includes('duplicat') ||
+                              mensagemErro.toLowerCase().includes('já existe') ||
+                              mensagemErro.toLowerCase().includes('cnpj') ||
+                              mensagemErro.toLowerCase().includes('razão social');
+        
+          if (ehDuplicacao && classificacao === 'PESSOA_JURIDICA') {
+            // Mostrar modal/alerta estilizado com a mensagem exata solicitada
+            const mensagemPadrao = 'A RAZAO SOCIAL OU CNPJ INFORMADOS JÁ ESTAO SENDO UTILIZADOS NO SISTEMA. POR FAVOR, FAÇA LOGIN COM AS CREDENCIAIS EXISTENTES OU CADASTRE OUTRA EMPRESA';
+            if (window.showModalAlert) {
+              // utiliza o modal existente, apenas exibindo a mensagem sem redirecionamento
+              await window.showModalAlert({
+                title: '⚠️ Empresa Já Cadastrada',
+                message: mensagemPadrao,
+                type: 'warning',
+                buttons: [ { label: 'Fechar', value: 'ok', class: 'btn-primary' } ]
+              });
+              // Não faz redirecionamento — apenas fecha o modal
+              return;
+            } else {
+              // fallback simples: manter alert padrão, sem redirecionamento
+              alert(mensagemPadrao);
+              return;
+            }
+          } else {
+          if (window.showModalAlert) {
+            await window.showModalAlert({ 
+              title: '❌ Erro no Cadastro', 
+              message: data.mensagem || 'Erro ao completar o cadastro. Por favor, tente novamente.', 
+              type: 'error' 
+            });
+          }
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Erro de conexão com o servidor.');
+    }catch (err) {
+      console.error('Erro:', err);
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Erro de Conexão', 
+          message: 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.', 
+          type: 'error' 
+        });
+      }
     }
   };
 }
@@ -256,35 +372,94 @@ function mostrarFormularioBeneficiario(me, camposDiv, form, titulo, subtitulo) {
     </div>
   `;
 
-  // Submit
   form.onsubmit = async (e) => {
     e.preventDefault();
 
-    const payload = new URLSearchParams(new FormData(form));
+    const formData = new FormData(form);
+    const renda_familiar = parseFloat(formData.get('renda_familiar'));
+    const consumo_medio_kwh = parseFloat(formData.get('consumo_medio_kwh'));
+    const num_moradores = parseInt(formData.get('num_moradores'));
+
+    if (isNaN(renda_familiar) || renda_familiar <= 0) {
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Campo Inválido', 
+          message: 'Por favor, informe uma renda familiar válida maior que zero.', 
+          type: 'warning' 
+        });
+      }
+      return;
+    }
+
+    if (isNaN(consumo_medio_kwh) || consumo_medio_kwh <= 0) {
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Campo Inválido', 
+          message: 'Por favor, informe um consumo médio válido maior que zero.', 
+          type: 'warning' 
+        });
+      }
+      return;
+    }
+
+    if (isNaN(num_moradores) || num_moradores <= 0) {
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Campo Inválido', 
+          message: 'Por favor, informe um número válido de moradores maior que zero.', 
+          type: 'warning' 
+        });
+      }
+      return;
+    }
 
     try {
-      const formData = Object.fromEntries(payload);
+      // ✅ CORREÇÃO: URL correta sem localhost
       const resp = await fetch('/api/perfil/completar/beneficiario', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          renda_mensal: parseFloat(formData.renda_familiar),
-          consumo_medio_kwh: parseFloat(formData.consumo_medio_kwh),
-          num_moradores: parseInt(formData.num_moradores)
+          renda_familiar: renda_familiar,
+          consumo_medio_kwh: consumo_medio_kwh,
+          num_moradores: num_moradores
         })
       });
 
       const data = await resp.json();
 
       if (data.sucesso) {
-        alert('Cadastro completo!');
-        location.href = data.redirect || '/painel-beneficiario';
+        if (window.showModalAlert) {
+          await window.showModalAlert({ 
+            title: '🎉 Cadastro Concluído', 
+            message: 'Seu cadastro foi completado com sucesso! Bem-vindo ao painel de beneficiário.', 
+            type: 'success',
+            onClose: () => {
+              window.location.href = '/painel-beneficiario';
+            }
+          });
+        } else {
+          window.location.href = '/painel-beneficiario';
+        }
       } else {
-        alert(data.mensagem || 'Erro ao salvar.');
+        if (window.showModalAlert) {
+          await window.showModalAlert({ 
+            title: '❌ Erro no Cadastro', 
+            message: data.mensagem || 'Erro ao completar o cadastro. Por favor, tente novamente.', 
+            type: 'error' 
+          });
+        }
       }
     } catch (err) {
-      console.error(err);
-      alert('Erro de conexão com o servidor.');
+      console.error('Erro:', err);
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Erro de Conexão', 
+          message: 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.', 
+          type: 'error' 
+        });
+      }
     }
   };
 }

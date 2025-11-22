@@ -1,7 +1,7 @@
 /**
  * LIGHTPATH ACCESS - LOGIN SYSTEM
  * Sistema de login para plataforma de doação de energia solar
- * Funcionalidades: Tabs, validação de senha, login social
+ * ✅ CORRIGIDO: Alertas interativos e fluxo de autenticação
  */
 
 // ===== VARIÁVEIS GLOBAIS =====
@@ -32,17 +32,14 @@ function initializeTabs() {
 }
 
 function switchTab(tabName) {
-    // Remove active class de todos os botões e painéis
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
 
-    // Adiciona active class ao botão e painel selecionados
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(tabName).classList.add('active');
 
     activeTab = tabName;
 
-    // Animação suave
     const activePanel = document.getElementById(tabName);
     activePanel.style.opacity = '0';
     activePanel.style.transform = 'translateY(10px)';
@@ -75,7 +72,6 @@ function initializePasswordToggle() {
 
 // ===== VALIDAÇÃO DE SENHA =====
 function initializePasswordValidation() {
-    // Array com todos os IDs de campos de senha
     const passwordFields = [
         { input: 'password', indicator: 'passwordStrength' },
         { input: 'registerPassword', indicator: 'registerPasswordStrength' },
@@ -86,7 +82,6 @@ function initializePasswordValidation() {
         let strengthIndicator = document.getElementById(field.indicator);
         
         if (passwordInput) {
-            // Se não existe o indicador, cria um
             if (!strengthIndicator) {
                 strengthIndicator = document.createElement('div');
                 strengthIndicator.id = field.indicator;
@@ -127,7 +122,6 @@ function initializePasswordValidation() {
 
 function validatePassword(password) {
     const minLength = password.length >= 8;
-    // Inclui todos os caracteres especiais que você mencionou
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>_\\\/\-+=~`\[\];']/.test(password);
     const hasNumber = /\d/.test(password);
     const hasLetter = /[a-zA-Z]/.test(password);
@@ -142,142 +136,202 @@ function validatePassword(password) {
     };
 }
 
-// ===== FORMATAÇÃO DE CAMPOS =====
-function formatCNPJ(value) {
-    value = value.replace(/\D/g, '');
-    value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-    value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-    value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-    value = value.replace(/(\d{4})(\d)/, '$1-$2');
-    return value;
-}
-
 // ===== SISTEMA DE FORMULÁRIOS =====
 function initializeForms() {
-    // Formulário de Login
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
 
-    // Formulário de Cadastro
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
-        registerForm.addEventListener('submit', handleregisterRegistration);
+        registerForm.addEventListener('submit', handleRegisterRegistration);
     }
-
 }
 
-function handleLogin(e) {
+// ✅ CORRIGIDO: Login com validação e alertas interativos
+async function handleLogin(e) {
+    e.preventDefault();
     const form = e.target;
     const email = form.email.value.trim();
     const password = form.password.value;
     
     // Validações
     if (!email || !password) {
-        e.target.submit();
-        showNotification('Por favor, preencha todos os campos.', 'error');
+        if (window.showModalAlert) {
+            await window.showModalAlert({ 
+                title: 'Campos obrigatórios', 
+                message: 'Por favor, preencha todos os campos.', 
+                type: 'error' 
+            });
+        }
         return;
     }
     
     const v = validatePassword(password);
     if (!v.isValid) {
-        e.target.submit();
-        showNotification('Senha deve ter pelo menos 8 caracteres e símbolos.', 'error');
+        if (window.showModalAlert) {
+            await window.showModalAlert({ 
+                title: 'Senha inválida', 
+                message: 'A senha deve ter pelo menos 8 caracteres e incluir caracteres especiais.', 
+                type: 'error' 
+            });
+        }
         return;
     }
 
-    form.action = '/login';
-    form.method = 'POST';
+    try {
+        // ✅ CORRIGIDO: URL correta da API
+        const response = await fetch('http://localhost:8000/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.sucesso) {
+            // ✅ Salva dados no localStorage
+            localStorage.setItem('userId', data.usuario_id || '');
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userToken', data.token || 'temp-token');
+
+            // ✅ Determina redirecionamento
+            let redirectUrl = '/selecionar-perfil';
+            
+            if (data.redirect) {
+                redirectUrl = data.redirect;
+            }
+
+            // ✅ Modal interativo com redirecionamento automático
+            if (window.showModalAlert) {
+                await window.showModalAlert({
+                    title: '✅ Login realizado',
+                    message: data.mensagem || 'Bem-vindo de volta!',
+                    type: 'success',
+                    onClose: () => {
+                        window.location.href = redirectUrl;
+                    }
+                });
+            } else {
+                window.location.href = redirectUrl;
+            }
+        } else {
+            // ✅ Erro de credenciais - modal interativo
+            if (window.showModalAlert) {
+                await window.showModalAlert({
+                    title: '❌ Erro de Login',
+                    message: data.mensagem || 'Email ou senha incorretos. Verifique suas credenciais e tente novamente.',
+                    type: 'error'
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        if (window.showModalAlert) {
+            await window.showModalAlert({
+                title: '⚠️ Erro de Conexão',
+                message: 'Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.',
+                type: 'error'
+            });
+        }
+    }
 }
 
-function handleregisterRegistration(e) {
+// ✅ CORRIGIDO: Cadastro com validação e alertas interativos
+async function handleRegisterRegistration(e) {
     e.preventDefault();
     const form = e.target;
     const firstName = form.firstName.value.trim();
-    const lastName  = form.lastName.value.trim();
-    const email     = form.email.value.trim();
-    const password  = form.password.value;
+    const lastName = form.lastName.value.trim();
+    const email = form.email.value.trim();
+    const password = form.password.value;
     
     // Validações
     if (!firstName || !lastName || !email || !password) {
-        e.target.submit();
-        showNotification('Por favor, preencha todos os campos.', 'error');
+        if (window.showModalAlert) {
+            await window.showModalAlert({ 
+                title: 'Campos obrigatórios',
+                message: 'Por favor, preencha todos os campos.', 
+                type: 'error' 
+            });
+        }
         return;
     }
     
-    // Validação da senha
     const v = validatePassword(password);
     if (!v.isValid) {
-        e.target.submit();
-        showNotification('A senha deve ter pelo menos 8 caracteres e incluir símbolos.', 'error');
+        if (window.showModalAlert) {
+            await window.showModalAlert({ 
+                title: 'Senha inválida', 
+                message: 'A senha deve ter pelo menos 8 caracteres e incluir caracteres especiais.', 
+                type: 'error' 
+            });
+        }
         return;
     }
 
-    form.submit();
-}
+    try {
+        // ✅ CORRIGIDO: Envia via fetch ao invés de form.submit()
+        const response = await fetch('http://localhost:8000/cadastro/inicial', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                password: password
+            })
+        });
 
-function handleReceiverRegistration(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const firstName = formData.get('firstName');
-    const lastName = formData.get('lastName');
-    const email = formData.get('email');
-    const password = formData.get('password');
-    
-    // Validações
-    if (!firstName || !lastName || !email || !password) {
-        showNotification('Por favor, preencha todos os campos.', 'error');
-        return;
-    }
-    
-    // Validação da senha
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-        showNotification('A senha deve ter pelo menos 8 caracteres e incluir símbolos especiais.', 'error');
-        return;
-    }
-    
-    // Simula cadastro
-    showNotification('Criando conta de recebedor...', 'info');
-    setTimeout(() => {
-        showNotification('Conta criada com sucesso! Em breve você receberá informações sobre doações disponíveis.', 'success');
-    }, 1500);
-}
+        const data = await response.json();
 
-function handleCompanyRegistration(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const companyName = formData.get('companyName');
-    const cnpj = formData.get('cnpj');
-    const email = formData.get('email');
-    const password = formData.get('password');
-    
-    // Validações
-    if (!companyName || !cnpj || !email || !password) {
-        showNotification('Por favor, preencha todos os campos.', 'error');
-        return;
+        if (data.sucesso) {
+            // ✅ Salva dados no localStorage
+            localStorage.setItem('userId', data.usuario_id || '');
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userToken', data.token || 'temp-token');
+
+            // ✅ Modal interativo com redirecionamento
+            if (window.showModalAlert) {
+                await window.showModalAlert({
+                    title: '🎉 Cadastro realizado',
+                    message: 'Sua conta foi criada com sucesso! Agora escolha seu perfil.',
+                    type: 'success',
+                    onClose: () => {
+                        window.location.href = data.redirect || '/selecionar-perfil';
+                    }
+                });
+            } else {
+                window.location.href = data.redirect || '/selecionar-perfil';
+            }
+        } else {
+            // ✅ Erro no cadastro - modal interativo
+            if (window.showModalAlert) {
+                await window.showModalAlert({
+                    title: '❌ Erro no cadastro',
+                    message: data.mensagem || 'Não foi possível criar sua conta. Verifique os dados e tente novamente.',
+                    type: 'error'
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        if (window.showModalAlert) {
+            await window.showModalAlert({
+                title: '⚠️ Erro de Conexão',
+                message: 'Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.',
+                type: 'error'
+            });
+        }
     }
-    
-    if (!validateCNPJ(cnpj)) {
-        showNotification('CNPJ inválido. Verifique os dados informados.', 'error');
-        return;
-    }
-    
-    // Validação da senha - ADICIONE ESTA PARTE
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-        showNotification('A senha deve ter pelo menos 8 caracteres e incluir símbolos especiais.', 'error');
-        return;
-    }
-    
-    // Simula cadastro
-    showNotification('Enviando dados para análise...', 'info');
-    setTimeout(() => {
-        showNotification('Cadastro enviado! Você receberá um email com o resultado da análise.', 'success');
-    }, 2000);
 }
 
 // ===== LOGIN SOCIAL =====
@@ -287,108 +341,45 @@ function initializeSocialLogin() {
     const forgotPassword = document.getElementById('forgotPassword');
 
     if (googleBtn) {
-        googleBtn.addEventListener('click', () => {
-            showNotification('Redirecionando para Google...', 'info');
-            // Aqui você integraria com a API do Google
+        googleBtn.addEventListener('click', async () => {
+            if (window.showModalAlert) {
+                await window.showModalAlert({ 
+                    title: 'Login Social', 
+                    message: 'Funcionalidade em desenvolvimento. Em breve você poderá fazer login com Google.', 
+                    type: 'info' 
+                });
+            }
         });
     }
 
     if (linkedinBtn) {
-        linkedinBtn.addEventListener('click', () => {
-            showNotification('Redirecionando para LinkedIn...', 'info');
-            // Aqui você integraria com a API do LinkedIn
+        linkedinBtn.addEventListener('click', async () => {
+            if (window.showModalAlert) {
+                await window.showModalAlert({ 
+                    title: 'Login Social', 
+                    message: 'Funcionalidade em desenvolvimento. Em breve você poderá fazer login com LinkedIn.', 
+                    type: 'info' 
+                });
+            }
         });
     }
 
     if (forgotPassword) {
-        forgotPassword.addEventListener('click', (e) => {
+        forgotPassword.addEventListener('click', async (e) => {
             e.preventDefault();
-            showNotification('Funcionalidade de recuperação de senha em desenvolvimento.', 'info');
+            if (window.showModalAlert) {
+                await window.showModalAlert({ 
+                    title: 'Recuperação de senha', 
+                    message: 'Funcionalidade em desenvolvimento. Entre em contato com o suporte.', 
+                    type: 'info' 
+                });
+            }
         });
     }
 }
 
-// ===== SISTEMA DE NOTIFICAÇÕES =====
-function showNotification(message, type = 'info') {
-    // Remove notificação existente
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-
-    // Cria nova notificação
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fas fa-${getIconForType(type)}"></i>
-            <span>${message}</span>
-        </div>
-        <button class="notification-close">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-
-    // Estilos da notificação
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${getBackgroundForType(type)};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        max-width: 300px;
-        animation: slideInRight 0.3s ease-out;
-    `;
-
-    document.body.appendChild(notification);
-
-    // Fecha notificação
-    const closeBtn = notification.querySelector('.notification-close');
-    closeBtn.addEventListener('click', () => {
-        notification.style.animation = 'slideOutRight 0.3s ease-out';
-        setTimeout(() => notification.remove(), 300);
-    });
-
-    // Auto-close
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.style.animation = 'slideOutRight 0.3s ease-out';
-            setTimeout(() => notification.remove(), 300);
-        }
-    }, 5000);
-}
-
-function getIconForType(type) {
-    const icons = {
-        success: 'check-circle',
-        error: 'exclamation-circle',
-        info: 'info-circle',
-        warning: 'exclamation-triangle'
-    };
-    return icons[type] || 'info-circle';
-}
-
-function getBackgroundForType(type) {
-    const backgrounds = {
-        success: 'linear-gradient(135deg, #10b981, #059669)',
-        error: 'linear-gradient(135deg, #ef4444, #dc2626)',
-        info: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-        warning: 'linear-gradient(135deg, #f59e0b, #d97706)'
-    };
-    return backgrounds[type] || backgrounds.info;
-}
-
 // ===== ACESSIBILIDADE =====
 function addAccessibilityFeatures() {
-    // Navegação por teclado nas tabs
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach((button, index) => {
         button.addEventListener('keydown', (e) => {
@@ -406,7 +397,6 @@ function addAccessibilityFeatures() {
         });
     });
 
-    // Escape para fechar notificações
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const notification = document.querySelector('.notification');
@@ -415,28 +405,6 @@ function addAccessibilityFeatures() {
             }
         }
     });
-}
-
-function handleReceiverRegistration(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const firstName = formData.get('firstName');
-    const lastName = formData.get('lastName');
-    const email = formData.get('email');
-    const password = formData.get('password');
-    
-    // Validações
-    if (!firstName || !lastName || !email || !password) {
-        showNotification('Por favor, preencha todos os campos.', 'error');
-        return;
-    }
-    
-    // Simula cadastro
-    showNotification('Criando conta de recebedor...', 'info');
-    setTimeout(() => {
-        showNotification('Conta criada com sucesso! Em breve você receberá informações sobre doações disponíveis.', 'success');
-    }, 1500);
 }
 
 // ===== ANIMAÇÕES CSS ADICIONAIS =====
@@ -461,26 +429,6 @@ const additionalStyles = `
             transform: translateX(100%);
             opacity: 0;
         }
-    }
-
-    .notification-content {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .notification-close {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        padding: 0.25rem;
-        border-radius: 0.25rem;
-        transition: background-color 0.2s;
-    }
-
-    .notification-close:hover {
-        background: rgba(255, 255, 255, 0.2);
     }
 
     .password-strength {
@@ -515,7 +463,6 @@ const additionalStyles = `
     }
 `;
 
-// Adiciona estilos adicionais
 const styleSheet = document.createElement('style');
 styleSheet.textContent = additionalStyles;
 document.head.appendChild(styleSheet);

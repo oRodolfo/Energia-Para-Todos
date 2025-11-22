@@ -76,14 +76,20 @@ class SimpleHandler(BaseHTTPRequestHandler):
                         'id_doador': Routes._sessao_global.get('id_doador'),
                         'id_beneficiario': Routes._sessao_global.get('id_beneficiario')
                     })
-                    # If redirect requested, set cookie and redirect
-                    if 'redirect' in resultado:
-                        self.send_response(302)
-                        self.send_header('Location', resultado['redirect'])
-                        self.send_header('Set-Cookie', f'session_id={session_id}; Path=/; Max-Age=86400')
-                        self.end_headers()
-                        return
-                    return self.enviar_json(resultado)
+
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json; charset=utf-8')
+                    self.send_header('Set-Cookie', f'session_id={session_id}; Path=/; Max-Age=86400')
+                    self.end_headers()
+                
+                    # Adiciona dados extras ao retorno
+                    resultado['usuario_id'] = Routes._sessao_global.get('usuario_id')
+                    resultado['token'] = session_id
+                
+                    json_data = json.dumps(resultado, ensure_ascii=False)
+                    self.wfile.write(json_data.encode('utf-8'))
+                    return
+            
                 return self.enviar_json(resultado)
 
             # CADASTRO INICIAL
@@ -98,11 +104,19 @@ class SimpleHandler(BaseHTTPRequestHandler):
                         'id_doador': Routes._sessao_global.get('id_doador'),
                         'id_beneficiario': Routes._sessao_global.get('id_beneficiario')
                     })
-                    self.send_response(302)
-                    self.send_header('Location', resultado.get('redirect', '/completar-cadastro'))
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json; charset=utf-8')
                     self.send_header('Set-Cookie', f'session_id={session_id}; Path=/; Max-Age=86400')
                     self.end_headers()
+                
+                    # Adiciona dados extras ao retorno
+                    resultado['usuario_id'] = Routes._sessao_global.get('usuario_id')
+                    resultado['token'] = session_id
+                
+                    json_data = json.dumps(resultado, ensure_ascii=False)
+                    self.wfile.write(json_data.encode('utf-8'))
                     return
+            
                 return self.enviar_json(resultado)
 
             # PERFIL: escolha e completar
@@ -158,13 +172,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 resultado = self.routes.criar_solicitacao_beneficiario(dados)
                 return self.enviar_json(resultado)
 
-            # ✅ BENEFICIÁRIO - editar solicitação
+            # BENEFICIÁRIO - editar solicitação
             if path == '/api/beneficiario/solicitacao/editar':
                 self.carregar_sessao_em_routes()
                 resultado = self.routes.editar_solicitacao(dados)
                 return self.enviar_json(resultado)
 
-            # ✅ BENEFICIÁRIO - excluir solicitação
+            # BENEFICIÁRIO - excluir solicitação
             if path == '/api/beneficiario/solicitacao/excluir':
                 self.carregar_sessao_em_routes()
                 resultado = self.routes.excluir_solicitacao(dados)
@@ -184,22 +198,19 @@ class SimpleHandler(BaseHTTPRequestHandler):
                             SESSOES[sid].update({'id_doador': Routes._sessao_global.get('id_doador')})
                 return self.enviar_json(resultado)
             
-            # ✅ DOADOR - editar doação
+            # DOADOR - editar doação
             if path == '/api/doador/doacao/editar':
                 self.carregar_sessao_em_routes()
                 resultado = self.routes.editar_doacao(dados)
                 return self.enviar_json(resultado)
 
-            # ✅ DOADOR - excluir doação
+            # DOADOR - excluir doação
             if path == '/api/doador/doacao/excluir':
                 self.carregar_sessao_em_routes()
                 resultado = self.routes.excluir_doacao(dados)
                 return self.enviar_json(resultado)
         
-             # ============================================
-            # ✅ CRUD DE USUÁRIOS
-            # ============================================
-            
+            # CRUD DE USUÁRIOS
             # Atualizar dados do usuário
             if path == '/usuario/atualizar-dados':
                 try:
@@ -222,7 +233,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     })
                     
                 except Exception as e:
-                    print(f"❌ Erro ao atualizar usuário: {e}")
+                    print(f"Erro ao atualizar usuário: {e}")
                     return self.enviar_json({
                         'sucesso': False,
                         'mensagem': f'Erro ao atualizar: {str(e)}'
@@ -255,7 +266,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                         })
                         
                 except Exception as e:
-                    print(f"❌ Erro ao alterar senha: {e}")
+                    print(f"Erro ao alterar senha: {e}")
                     return self.enviar_json({
                         'sucesso': False,
                         'mensagem': f'Erro ao alterar senha: {str(e)}'
@@ -286,7 +297,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                         })
                         
                 except Exception as e:
-                    print(f"❌ Erro ao excluir usuário: {e}")
+                    print(f"Erro ao excluir usuário: {e}")
                     return self.enviar_json({
                         'sucesso': False,
                         'mensagem': f'Erro ao excluir: {str(e)}'
@@ -303,7 +314,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.enviar_404()
 
         except Exception as e:
-            print(f"❌ Erro ao processar requisição POST: {str(e)}")
+            print(f"Erro ao processar requisição POST: {str(e)}")
             import traceback
             traceback.print_exc()
             self.enviar_json({'sucesso': False, 'mensagem': str(e)}, status=500)
@@ -331,11 +342,14 @@ class SimpleHandler(BaseHTTPRequestHandler):
             if self.path.startswith(('/assets/', '/images/')):
                 return self.servir_estatico(self.path)
 
-            if self.path == '/':
+            if self.path == '/' or self.path == '/index.html':
                 return self.servir_html('index.html')
         
-            if self.path == '/login':
+            if self.path == '/login' or self.path == '/login.html':
                 return self.servir_html('login.html')
+            
+            if self.path == '/ods' or self.path == '/ods.html':
+                return self.servir_html('ods.html')
         
             if self.path == '/cadastro':
                 return self.servir_html('cadastro.html')
@@ -360,18 +374,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     '/painel-doador': 'dashboard-doador.html'
                 }
                 return self.servir_html(paginas[self.path])
-        
-            if self.path == '/painel-beneficiario':
-                return self.servir_html('painel-beneficiario.html')
-        
-            if self.path == '/painel-doador':
-                return self.servir_html('painel-doador.html')
-        
-            if self.path == '/completar-cadastro':
-                return self.servir_html('completar-cadastro.html')
-        
-            if self.path == '/selecionar-perfil':
-                return self.servir_html('selecionar-perfil.html')
 
             # APIs
             if self.path == '/api/meu-perfil':
@@ -401,7 +403,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     usuarios = self.routes.db.listar_usuarios(1000)
                     return self.enviar_json({'sucesso': True, 'usuarios': usuarios})
                 except Exception as e:
-                    print(f"❌ Erro ao listar usuários: {e}")
+                    print(f"Erro ao listar usuários: {e}")
                     import traceback
                     traceback.print_exc()
                     return self.enviar_json({'sucesso': False, 'mensagem': str(e)}, status=500)
@@ -425,7 +427,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.enviar_404()
 
         except Exception as e:
-            print(f"❌ Erro ao processar requisição GET: {str(e)}")
+            print(f"Erro ao processar requisição GET: {str(e)}")
             import traceback
             traceback.print_exc()
             self.enviar_json({'sucesso': False, 'mensagem': str(e)}, status=500)
@@ -439,7 +441,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             base = os.path.dirname(base)
         FRONT_DIR = next((c for c in candidates if os.path.isdir(c)), None)
         if not FRONT_DIR:
-            print("❌ Não encontrei a pasta FrontEnd. Candidatos:", candidates)
+            print("Não encontrei a pasta FrontEnd. Candidatos:", candidates)
             return self.enviar_404()
         caminho = os.path.join(FRONT_DIR, nome_arquivo)
         if os.path.exists(caminho):
@@ -458,7 +460,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(conteudo.encode('utf-8'))
         else:
-            print(f"❌ Arquivo não encontrado: {caminho}")
+            print(f"Arquivo não encontrado: {caminho}")
             self.enviar_404()
 
     def servir_estatico(self, path):
@@ -476,7 +478,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.enviar_404(); return
         arquivo = os.path.join(ASSETS_DIR, rel_path)
         if not os.path.exists(arquivo):
-            print(f"❌ Arquivo estático não encontrado: {arquivo}")
+            print(f"Arquivo estático não encontrado: {arquivo}")
             self.enviar_404(); return
         if arquivo.endswith('.css'):
             content_type = 'text/css'
@@ -531,17 +533,17 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
 def iniciar_servidor(porta=8000):
     servidor = HTTPServer(('localhost', porta), SimpleHandler)
-    print(f'\n⚡ Servidor Energia Para Todos iniciado!')
-    print(f'🌐 Acesse: http://localhost:{porta}')
-    print(f'🔐 Login: http://localhost:{porta}/login')
-    print(f'\n💡 Pressione Ctrl+C para parar\n')
+    print(f'\n Servidor Energia Para Todos iniciado!')
+    print(f' Acesse: http://localhost:{porta}')
+    print(f' Login: http://localhost:{porta}/login')
+    print(f'\n Pressione Ctrl+C para parar\n')
     try:
         servidor.serve_forever()
     except KeyboardInterrupt:
         print('\nEncerrando servidor...')
         servidor.server_close()
 
-        print('\n\n✅ Servidor encerrado.')
+        print('\n\nServidor encerrado.')
         servidor.shutdown()
 
 if __name__ == '__main__':

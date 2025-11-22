@@ -50,9 +50,7 @@ def main():
     print("Sistema de intermediação de créditos de energia solar")
     print("Conectando doadores a beneficiários com distribuição automática e transparente")
     
-    # ========================================================================
     # 1. INICIALIZAÇÃO DOS SERVIÇOS
-    # ========================================================================
     imprimir_secao("1. INICIALIZAÇÃO DOS SERVIÇOS")
     
     distribuidor = DistribuidorCreditos()
@@ -60,14 +58,12 @@ def main():
     painel_transparencia = PainelTransparencia()
     logger = LoggerAuditoria()
     
-    print("✓ Distribuidor de Créditos inicializado")
-    print("✓ Gerador de Relatórios inicializado")
-    print("✓ Painel de Transparência inicializado")
-    print("✓ Sistema de Auditoria inicializado")
+    print("Distribuidor de Créditos inicializado")
+    print("Gerador de Relatórios inicializado")
+    print("Painel de Transparência inicializado")
+    print("Sistema de Auditoria inicializado")
     
-    # ========================================================================
     # 2. CRIAÇÃO DO ADMINISTRADOR
-    # ========================================================================
     imprimir_secao("2. CRIAÇÃO DO ADMINISTRADOR")
     
     admin = Administrador(
@@ -78,14 +74,10 @@ def main():
         telefone="11987654321",
         cep= "01310100",
     )
-    
     print(f"Administrador criado: {admin}")
     
-    # ========================================================================
     # 3. CADASTRO DE DOADORES
-    # ========================================================================
     imprimir_secao("3. CADASTRO DE DOADORES")
-    
     doadores = [
         Doador(
             id_doador=1,
@@ -118,11 +110,8 @@ def main():
         detalhes=f"{len(doadores)} doadores cadastrados"
     )
     
-    # ========================================================================
     # 4. CADASTRO DE BENEFICIÁRIOS
-    # ========================================================================
     imprimir_secao("4. CADASTRO DE BENEFICIÁRIOS")
-    
     beneficiarios = [
         Beneficiario(
             id_beneficiario=1,
@@ -194,9 +183,7 @@ def main():
               f"Consumo: {beneficiario.consumo_medio_kwh} kWh | "
               f"Moradores: {beneficiario.num_moradores}")
     
-    # ========================================================================
     # 5. CRIAÇÃO E CONFIGURAÇÃO DA FILA DE ESPERA
-    # ========================================================================
     imprimir_secao("5. CRIAÇÃO DA FILA DE ESPERA")
     
     fila = FilaEspera(id_temporada=1, nome_temporada="Temporada 2025-1")
@@ -210,7 +197,7 @@ def main():
     print(f"✓ {fila.tamanho} beneficiários na fila")
     
     # Exibe fila ordenada por prioridade
-    print("\n📋 FILA ORDENADA POR PRIORIDADE:")
+    print("\n FILA ORDENADA POR PRIORIDADE:")
     print("-" * 80)
     print(f"{'Pos':<5} {'Nome':<30} {'Prioridade':<12} {'Renda':<10} {'Moradores':<10}")
     print("-" * 80)
@@ -220,7 +207,7 @@ def main():
               f"R$ {item['renda_familiar']:<8.2f} {item['num_moradores']:<10}")
     
     # Demonstra ajuste de pesos pelo administrador
-    print("\n🔧 Administrador ajustando pesos de priorização...")
+    print("\nAdministrador ajustando pesos de priorização...")
     admin.ajustar_pesos_priorizacao(
         peso_renda=0.4,
         peso_consumo=0.2,
@@ -229,18 +216,15 @@ def main():
     )
     
     fila.configurar_pesos(**admin.pesos_priorizacao)
-    print("✓ Pesos ajustados:")
+    print("Pesos ajustados:")
     imprimir_dict(admin.pesos_priorizacao, indent=1)
     
     admin.registrar_acao_administrativa("Ajuste de pesos de priorização da fila")
-    
-    # ========================================================================
+
     # 6. REGISTRO DE DOAÇÕES (CRÉDITOS)
-    # ========================================================================
     imprimir_secao("6. REGISTRO DE DOAÇÕES DE CRÉDITOS")
     
     creditos = []
-    
     # Doação 1 - Empresa médio porte
     credito1 = Credito(
         id_credito=1,
@@ -265,20 +249,18 @@ def main():
     doadores[1].registrar_doacao(credito2.id_credito, 200.0)
     distribuidor.adicionar_credito(credito2)
     painel_transparencia.atualizar_metricas_doacao(200.0, novo_doador=False)
-    print(f"✓ {credito2}")
+    print(f"{credito2}")
     
-    print(f"\n💡 Total disponível para distribuição: {distribuidor.obter_total_disponivel():.2f} kWh")
+    print(f"\n Total disponível para distribuição: {distribuidor.obter_total_disponivel():.2f} kWh")
     
-    # ========================================================================
     # 7. DISTRIBUIÇÃO AUTOMÁTICA PROPORCIONAL
-    # ========================================================================
     imprimir_secao("7. DISTRIBUIÇÃO AUTOMÁTICA PROPORCIONAL")
     
     print("Iniciando distribuição proporcional aos beneficiários prioritários...\n")
     
     resultado_distribuicao = distribuidor.distribuir_proporcional(fila, num_beneficiarios=5)
     
-    print("📊 RESULTADO DA DISTRIBUIÇÃO:")
+    print("RESULTADO DA DISTRIBUIÇÃO:")
     print("-" * 80)
     imprimir_dict(resultado_distribuicao)
     
@@ -294,12 +276,10 @@ def main():
     for _ in resultado_distribuicao['beneficiarios_atendidos']:
         painel_transparencia.marcar_beneficiario_atendido()
     
-    # ========================================================================
     # 8. VERIFICAÇÃO PÓS-DISTRIBUIÇÃO
-    # ========================================================================
     imprimir_secao("8. VERIFICAÇÃO PÓS-DISTRIBUIÇÃO")
     
-    print("📦 SALDO DOS BENEFICIÁRIOS APÓS DISTRIBUIÇÃO:")
+    print("SALDO DOS BENEFICIÁRIOS APÓS DISTRIBUIÇÃO:")
     print("-" * 80)
     print(f"{'Nome':<30} {'Recebido (kWh)':<18} {'Saldo (kWh)':<15} {'Transações':<12}")
     print("-" * 80)
@@ -308,33 +288,27 @@ def main():
         print(f"{beneficiario.nome:<30} {beneficiario.total_recebido_kwh:<18.2f} "
               f"{beneficiario.saldo_creditos_kwh:<15.2f} {beneficiario.total_transacoes:<12}")
     
-    print(f"\n💡 kWh restante no pool: {distribuidor.obter_total_disponivel():.2f}")
+    print(f"\n kWh restante no pool: {distribuidor.obter_total_disponivel():.2f}")
     
-    # ========================================================================
     # 9. REALOCAÇÃO NA FILA
-    # ========================================================================
     imprimir_secao("9. REALOCAÇÃO NA FILA")
     
     print("Verificando necessidade contínua dos beneficiários atendidos...\n")
     
     fila.realocar_atendidos()
     
-    print("📋 FILA APÓS REALOCAÇÃO:")
+    print("FILA APÓS REALOCAÇÃO:")
     print("-" * 80)
     stats = fila.obter_estatisticas()
     imprimir_dict(stats)
-    
-    # ========================================================================
+
     # 10. RELATÓRIO DE IMPACTO GERAL
-    # ========================================================================
     imprimir_secao("10. RELATÓRIO DE IMPACTO GERAL")
     
     relatorio_geral = gerador_relatorios.gerar_relatorio_impacto_geral(preco_kwh=0.85)
     imprimir_dict(relatorio_geral)
     
-    # ========================================================================
     # 11. RELATÓRIO INDIVIDUAL DE DOADOR
-    # ========================================================================
     imprimir_secao("11. RELATÓRIO INDIVIDUAL DE DOADOR")
     
     print("Gerando relatório do doador 'GreenPower Industrias S.A.'...\n")
@@ -344,9 +318,7 @@ def main():
     )
     imprimir_dict(relatorio_doador)
     
-    # ========================================================================
     # 12. RELATÓRIO INDIVIDUAL DE BENEFICIÁRIO
-    # ========================================================================
     imprimir_secao("12. RELATÓRIO INDIVIDUAL DE BENEFICIÁRIO")
     
     print("Gerando relatório da beneficiária 'Antônia Silva'...\n")
@@ -355,36 +327,30 @@ def main():
     )
     imprimir_dict(relatorio_beneficiario)
     
-    # ========================================================================
     # 13. RANKINGS
-    # ========================================================================
     imprimir_secao("13. RANKINGS")
     
-    print("🏆 TOP 3 DOADORES (por kWh doados):")
+    print("TOP 3 DOADORES (por kWh doados):")
     print("-" * 80)
     ranking_doadores = gerador_relatorios.gerar_ranking_doadores('kwh', 3)
     for item in ranking_doadores:
         print(f"{item['posicao']}º - {item['nome']} ({item['classificacao']}): "
               f"{item['total_kwh_doados']} kWh em {item['total_doacoes']} doações")
     
-    print("\n🏆 TOP 3 BENEFICIÁRIOS (por kWh recebidos):")
+    print("\n TOP 3 BENEFICIÁRIOS (por kWh recebidos):")
     print("-" * 80)
     ranking_beneficiarios = gerador_relatorios.gerar_ranking_beneficiarios('kwh', 3)
     for item in ranking_beneficiarios:
         print(f"{item['posicao']}º - {item['nome']} (Renda: R$ {item['renda_familiar']:.2f}): "
               f"{item['total_kwh_recebido']} kWh em {item['total_transacoes']} transações")
     
-    # ========================================================================
     # 14. PAINEL DE TRANSPARÊNCIA PÚBLICA
-    # ========================================================================
     imprimir_secao("14. PAINEL DE TRANSPARÊNCIA PÚBLICA")
     
     visao_publica = painel_transparencia.obter_visao_geral(preco_kwh=0.85)
     imprimir_dict(visao_publica)
     
-    # ========================================================================
     # 15. SIMULAÇÃO DE IMPACTO DE NOVA DOAÇÃO
-    # ========================================================================
     imprimir_secao("15. SIMULAÇÃO DE IMPACTO DE NOVA DOAÇÃO")
     
     print("Simulando impacto de uma doação de 300 kWh...\n")
@@ -395,9 +361,7 @@ def main():
     )
     imprimir_dict(simulacao)
     
-    # ========================================================================
     # 16. CERTIFICADO DE DOADOR
-    # ========================================================================
     imprimir_secao("16. CERTIFICADO DE DOADOR")
 
     alvo_nome = "GreenPower Industrias S.A."  # o que você quer certificar
@@ -414,7 +378,7 @@ def main():
             preco_kwh=0.85
         )
 
-        print("🎖️  CERTIFICADO DE IMPACTO SOCIAL")
+        print("CERTIFICADO DE IMPACTO SOCIAL")
         print("-" * 80)
         print(certificado['mensagem'])
         print("-" * 80)
@@ -422,21 +386,18 @@ def main():
     else:
         print("Nenhum doador disponível para emissão de certificado.")
     
-    # ========================================================================
+
     # 17. FEEDBACKS ANÔNIMOS
-    # ========================================================================
     imprimir_secao("17. FEEDBACKS DE BENEFICIÁRIOS (ANÔNIMOS)")
     
     feedbacks = painel_transparencia.obter_feedbacks_anonimos(limite=3)
     for idx, feedback in enumerate(feedbacks, 1):
         print(f"{idx}. \"{feedback}\"")
     
-    # ========================================================================
     # 18. LOG DE AUDITORIA
-    # ========================================================================
     imprimir_secao("18. LOG DE AUDITORIA")
     
-    print("📝 REGISTROS DE AUDITORIA DO SISTEMA:")
+    print("REGISTROS DE AUDITORIA DO SISTEMA:")
     print("-" * 80)
     
     logs = logger.obter_logs()
@@ -446,19 +407,17 @@ def main():
         if log['detalhes']:
             print(f"  └─ {log['detalhes']}")
     
-    print(f"\n📊 Total de logs registrados: {len(logs)}")
+    print(f"\nTotal de logs registrados: {len(logs)}")
     
     # Estatísticas de logs
     stats_logs = logger.obter_estatisticas()
     print("\nESTATÍSTICAS DE AUDITORIA:")
     imprimir_dict(stats_logs)
     
-    # ========================================================================
     # 19. HISTÓRICO DE ALTERAÇÕES (AUDIT MIXIN)
-    # ========================================================================
     imprimir_secao("19. HISTÓRICO DE ALTERAÇÕES (DEMONSTRAÇÃO AUDIT MIXIN)")
     
-    print("📜 Histórico de alterações do Administrador:")
+    print("Histórico de alterações do Administrador:")
     print("-" * 80)
     historico_admin = admin.historico_alteracoes
     for alteracao in historico_admin[-5:]:  # Últimas 5 alterações
@@ -468,7 +427,7 @@ def main():
         if alteracao['observacao']:
             print(f"  └─ Obs: {alteracao['observacao']}")
     
-    print(f"\n📜 Histórico de alterações do Doador '{doadores[0].nome}':")
+    print(f"\nHistórico de alterações do Doador '{doadores[0].nome}':")
     print("-" * 80)
     historico_doador = doadores[0].historico_alteracoes
     for alteracao in historico_doador[-3:]:
@@ -477,40 +436,36 @@ def main():
         print(f"  └─ Valor: {alteracao['valor_novo']}")
         if alteracao['observacao']:
             print(f"  └─ {alteracao['observacao']}")
-    
-    # ========================================================================
+
     # 20. ESTATÍSTICAS FINAIS
-    # ========================================================================
     imprimir_secao("20. ESTATÍSTICAS FINAIS DO SISTEMA")
     
-    print("📊 RESUMO EXECUTIVO:")
+    print("RESUMO EXECUTIVO:")
     print("-" * 80)
-    print(f"✓ Doadores cadastrados: {len(doadores)}")
-    print(f"✓ Beneficiários cadastrados: {len(beneficiarios)}")
-    print(f"✓ Créditos registrados: {len(creditos)}")
-    print(f"✓ Total kWh doados: {sum(d.total_kwh_doados for d in doadores):.2f}")
-    print(f"✓ Total kWh distribuídos: {sum(b.total_recebido_kwh for b in beneficiarios):.2f}")
-    print(f"✓ Transações realizadas: {len(distribuidor._transacoes)}")
-    print(f"✓ Beneficiários atendidos: {len([b for b in beneficiarios if b.total_recebido_kwh > 0])}")
-    print(f"✓ Taxa de distribuição: {(sum(b.total_recebido_kwh for b in beneficiarios) / sum(d.total_kwh_doados for d in doadores) * 100):.2f}%")
-    print(f"✓ Economia social gerada: R$ {sum(b.total_recebido_kwh for b in beneficiarios) * 0.85:.2f}")
+    print(f"Doadores cadastrados: {len(doadores)}")
+    print(f"Beneficiários cadastrados: {len(beneficiarios)}")
+    print(f"Créditos registrados: {len(creditos)}")
+    print(f"Total kWh doados: {sum(d.total_kwh_doados for d in doadores):.2f}")
+    print(f"Total kWh distribuídos: {sum(b.total_recebido_kwh for b in beneficiarios):.2f}")
+    print(f"Transações realizadas: {len(distribuidor._transacoes)}")
+    print(f"Beneficiários atendidos: {len([b for b in beneficiarios if b.total_recebido_kwh > 0])}")
+    print(f"Taxa de distribuição: {(sum(b.total_recebido_kwh for b in beneficiarios) / sum(d.total_kwh_doados for d in doadores) * 100):.2f}%")
+    print(f"Economia social gerada: R$ {sum(b.total_recebido_kwh for b in beneficiarios) * 0.85:.2f}")
     
     stats_dist = distribuidor.obter_estatisticas()
-    print(f"\n📦 Pool de Créditos:")
-    print(f"  └─ Créditos ativos: {stats_dist['creditos_no_pool']}")
-    print(f"  └─ kWh disponível: {stats_dist['kwh_disponivel']:.2f}")
+    print(f"\nPool de Créditos:")
+    print(f"  Créditos ativos: {stats_dist['creditos_no_pool']}")
+    print(f"  kWh disponível: {stats_dist['kwh_disponivel']:.2f}")
     
-    print(f"\n📋 Fila de Espera:")
+    print(f"\nFila de Espera:")
     stats_fila = fila.obter_estatisticas()
-    print(f"  └─ Aguardando: {stats_fila['aguardando']}")
-    print(f"  └─ Prioridade média: {stats_fila['prioridade_media']:.2f}")
+    print(f"  Aguardando: {stats_fila['aguardando']}")
+    print(f"  Prioridade média: {stats_fila['prioridade_media']:.2f}")
     
-    # ========================================================================
     # FINALIZAÇÃO
-    # ========================================================================
     imprimir_secao("DEMONSTRAÇÃO CONCLUÍDA COM SUCESSO")
     
-    print("✅ Todos os componentes do sistema foram testados:")
+    print(" Todos os componentes do sistema foram testados:")
     print("   • Cadastro de usuários (Doadores, Beneficiários, Administrador)")
     print("   • Herança múltipla (PerfilUsuario + AuditMixin)")
     print("   • Polimorfismo (calcular_prioridade)")
@@ -523,7 +478,7 @@ def main():
     print("   • Painel de transparência pública")
     print("   • Sistema completo de auditoria")
     
-    print("\n🎉 Sistema 'Energia Para Todos' operacional!")
+    print("\n Sistema 'Energia Para Todos' operacional!")
     print("=" * 80)
 
 

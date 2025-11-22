@@ -1,21 +1,13 @@
-// ============================================
-// DASHBOARD DOADOR - COM CRUD COMPLETO
-// ============================================
-
+// DASHBOARD DOADOR
 let dadosDoador = null;
-
-// ============================================
 // INICIALIZAÇÃO
-// ============================================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Dashboard Doador iniciado');
   await carregarDadosDoador();
   configurarEventos();
 });
 
-// ============================================
 // CARREGAR DADOS DO DOADOR
-// ============================================
 async function carregarDadosDoador() {
   try {
     const response = await fetch('/api/doador/dados', {
@@ -27,7 +19,6 @@ async function carregarDadosDoador() {
     });
 
     const resultado = await response.json();
-    
     if (!resultado.sucesso) {
       mostrarAlerta(resultado.mensagem || 'Erro ao carregar dados', 'error');
       if (resultado.mensagem && resultado.mensagem.includes('Permissão negada')) {
@@ -35,9 +26,28 @@ async function carregarDadosDoador() {
       }
       return;
     }
+    const dados = resultado.dados;
+    
+    // determina o nome de exibição
+    let nomeExibicao = dados.nome; // Nome padrão
 
-    dadosDoador = resultado.dados;
-    renderizarDashboard(dadosDoador);
+     if (dados.classificacao === 'PESSOA_JURIDICA' && dados.razao_social) {
+      nomeExibicao = dados.razao_social; // <<-USA RAZÃO SOCIAL SE FOR PJ
+    }
+    
+    // atualiza o titulo
+    document.querySelector('.dashboard-title').textContent = `Olá, ${nomeExibicao}`;
+
+    // Atualizar subtítulo com classificação
+    const subtitulo = document.querySelector('.dashboard-subtitle');
+    if (dados.cnpj) {
+      subtitulo.textContent = `Pessoa Jurídica · CNPJ: ${formatarCNPJ(dados.cnpj)}`;
+    } else {
+      subtitulo.textContent = 'Pessoa Física';
+    }
+
+    dadosDoador = dados;
+    renderizarDashboard(dados);
     
   } catch (erro) {
     console.error('❌ Erro ao carregar dados:', erro);
@@ -45,14 +55,14 @@ async function carregarDadosDoador() {
   }
 }
 
-// ============================================
+function formatarCNPJ(cnpj) {
+  if (!cnpj) return '';
+  return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
 // RENDERIZAR DASHBOARD
-// ============================================
 function renderizarDashboard(dados) {
   console.log('📊 Renderizando dashboard:', dados);
-
-  // Atualizar título com nome do doador
-  document.querySelector('.dashboard-title').textContent = `Olá, ${dados.nome}!`;
 
   // Atualizar métricas
   document.getElementById('total-doado').innerHTML = 
@@ -71,9 +81,7 @@ function renderizarDashboard(dados) {
   renderizarHistorico(dados.creditos || []);
 }
 
-// ============================================
 // RENDERIZAR HISTÓRICO COM BOTÕES CRUD
-// ============================================
 function renderizarHistorico(creditos) {
   const container = document.getElementById('historico-doacoes');
   
@@ -114,7 +122,7 @@ function renderizarHistorico(creditos) {
       ? new Date(credito.data_expiracao).toLocaleDateString('pt-BR')
       : 'Sem data';
 
-    // ✅ Define se pode editar/excluir (somente se quantidade_consumida = 0)
+    //Define se pode editar/excluir (somente se quantidade_consumida = 0)
     const podeEditar = qtdConsumida === 0;
     
     // Status badge
@@ -135,7 +143,7 @@ function renderizarHistorico(creditos) {
     `;
 
     if (podeEditar) {
-      // ✅ Pode editar e excluir
+      //Pode editar e excluir
       html += `
         <button class="btn-action btn-edit" onclick="abrirModalEdicao(${credito.id_credito}, ${qtdInicial})" title="Editar doação">
           <i class="fas fa-edit"></i>
@@ -145,7 +153,7 @@ function renderizarHistorico(creditos) {
         </button>
       `;
     } else {
-      // ❌ Não pode editar/excluir (já foi distribuído)
+      // Não pode editar/excluir (já foi distribuído)
       html += `
         <span class="badge badge-info" title="Esta doação já foi distribuída e não pode ser alterada">
           <i class="fas fa-lock"></i> Distribuída
@@ -163,9 +171,7 @@ function renderizarHistorico(creditos) {
   container.innerHTML = html;
 }
 
-// ============================================
 // CONFIGURAR EVENTOS
-// ============================================
 function configurarEventos() {
   // Modal Nova Doação
   const btnAbrirModal = document.getElementById('btn-abrir-modal');
@@ -192,9 +198,7 @@ function configurarEventos() {
   });
 }
 
-// ============================================
 // CRIAR NOVA DOAÇÃO
-// ============================================
 async function criarDoacao() {
   const inputKwh = document.getElementById('input-kwh');
   const quantidade = parseFloat(inputKwh.value);
@@ -227,9 +231,7 @@ async function criarDoacao() {
   }
 }
 
-// ============================================
 // EDITAR DOAÇÃO
-// ============================================
 function abrirModalEdicao(idCredito, qtdAtual) {
   const novaQtd = prompt(`Editar Doação #${idCredito}\n\nQuantidade atual: ${qtdAtual} kWh\nNova quantidade (kWh):`, qtdAtual);
   
@@ -271,11 +273,9 @@ async function editarDoacao(idCredito, novaQuantidade) {
   }
 }
 
-// ============================================
 // EXCLUIR DOAÇÃO
-// ============================================
 function confirmarExclusao(idCredito) {
-  const confirmacao = confirm(`⚠️ ATENÇÃO!\n\nDeseja realmente EXCLUIR a doação #${idCredito}?\n\nEsta ação não pode ser desfeita.`);
+  const confirmacao = confirm(`ATENÇÃO!\n\nDeseja realmente EXCLUIR a doação #${idCredito}?\n\nEsta ação não pode ser desfeita.`);
   
   if (confirmacao) {
     excluirDoacao(idCredito);
@@ -305,9 +305,7 @@ async function excluirDoacao(idCredito) {
   }
 }
 
-// ============================================
 // SISTEMA DE ALERTAS
-// ============================================
 function mostrarAlerta(mensagem, tipo = 'info') {
   // Remove alertas existentes
   const alertaExistente = document.querySelector('.alerta-flutuante');

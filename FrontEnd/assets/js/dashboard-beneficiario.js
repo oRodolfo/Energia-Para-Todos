@@ -1,3 +1,7 @@
+// ============================================
+// DASHBOARD BENEFICIÁRIO - COM ALERTAS INTERATIVOS
+// ============================================
+
 document.addEventListener('DOMContentLoaded', async () => {
   await carregarDados();
   configurarModal();
@@ -9,7 +13,7 @@ async function carregarDados() {
     const data = await resp.json();
 
     if (!data.sucesso) {
-      alert(data.mensagem || 'Erro ao carregar dados');
+      mostrarAlerta(data.mensagem || 'Erro ao carregar dados', 'error');
       return;
     }
 
@@ -26,7 +30,6 @@ async function carregarDados() {
     const statusEl = document.getElementById('status-solicitacao');
     const rawStatus = (d.descricao_status_beneficiario || '').toString();
 
-    // Converte código do banco em um label legível e classe CSS
     function formatStatus(code) {
       if (!code) return { label: '-', cls: 'status-desconhecido', icon: 'fa-question-circle' };
       const c = code.toUpperCase();
@@ -38,7 +41,6 @@ async function carregarDados() {
     }
 
     const formatted = formatStatus(rawStatus);
-    // preserva a classe metric-value para manter o estilo das métricas
     statusEl.className = 'metric-value';
     statusEl.innerHTML = `
       <div class="status-pill ${formatted.cls}" title="${formatted.label}">
@@ -76,7 +78,7 @@ async function carregarDados() {
         <div style="text-align: center; padding: 40px 20px;">
           <i class="fas fa-inbox" style="font-size: 3rem; color: #ff9500; opacity: 0.3; margin-bottom: 15px;"></i>
           <p style="color: #999; font-size: 1.1rem; margin-bottom: 10px;">Nenhuma solicitação registrada ainda.</p>
-          <p style="color: #666; font-size: 0.95rem;">Clique em "Nova Solicitação de Créditos" para começar a ajudar!</p>
+          <p style="color: #666; font-size: 0.95rem;">Clique em "Nova Solicitação de Créditos" para começar!</p>
         </div>
       `;
     } else {
@@ -143,17 +145,23 @@ async function carregarDados() {
 
   } catch (err) {
     console.error('Erro:', err);
-    alert('Erro ao carregar dados do beneficiário');
+    mostrarAlerta('Erro ao carregar dados do beneficiário', 'error');
   }
 }
 
+// ✅ FUNÇÃO EDITAR SOLICITAÇÃO - CORRIGIDA
 async function editarSolicitacao(idFila, quantidadeAtual) {
   const novaQuantidade = prompt(
     `Editar solicitação\n\nQuantidade atual: ${quantidadeAtual} kWh\n\n⚠️ ATENÇÃO: Qualquer alteração joga sua solicitação para o FINAL DA FILA.\n\nDigite a nova quantidade:`, 
     quantidadeAtual
   );
   
-  if (!novaQuantidade || parseFloat(novaQuantidade) <= 0) {
+  if (novaQuantidade === null) return; // Cancelou
+  
+  const qtd = parseFloat(novaQuantidade);
+  
+  if (!qtd || qtd <= 0 || isNaN(qtd)) {
+    mostrarAlerta('Por favor, digite uma quantidade válida', 'warning');
     return;
   }
 
@@ -163,26 +171,27 @@ async function editarSolicitacao(idFila, quantidadeAtual) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id_fila: idFila,
-        quantidade_kwh: parseFloat(novaQuantidade)
+        quantidade_kwh: qtd // ✅ Garante que seja número válido
       })
     });
 
     const data = await resp.json();
 
     if (data.sucesso) {
-      alert('✅ ' + data.mensagem + '\n\n⚠️ Sua posição na fila foi atualizada.');
+      mostrarAlerta('✅ ' + data.mensagem, 'success');
       await carregarDados();
     } else {
-      alert('❌ ' + data.mensagem);
+      mostrarAlerta('❌ ' + data.mensagem, 'error');
     }
   } catch (err) {
     console.error('Erro:', err);
-    alert('Erro de conexão com o servidor');
+    mostrarAlerta('Erro de conexão com o servidor', 'error');
   }
 }
 
-// ✅ NOVA FUNÇÃO: EXCLUIR SOLICITAÇÃO
+// ✅ FUNÇÃO EXCLUIR SOLICITAÇÃO - COM ALERTA INTERATIVO
 async function excluirSolicitacao(idFila) {
+  // ✅ Usa confirm nativo (mais seguro para confirmação de exclusão)
   if (!confirm('⚠️ Tem certeza que deseja CANCELAR esta solicitação?\n\nEsta ação não pode ser desfeita.')) {
     return;
   }
@@ -197,14 +206,14 @@ async function excluirSolicitacao(idFila) {
     const data = await resp.json();
 
     if (data.sucesso) {
-      alert('✅ ' + data.mensagem);
+      mostrarAlerta('✅ ' + data.mensagem, 'success');
       await carregarDados();
     } else {
-      alert('❌ ' + data.mensagem);
+      mostrarAlerta('❌ ' + data.mensagem, 'error');
     }
   } catch (err) {
     console.error('Erro:', err);
-    alert('Erro de conexão com o servidor');
+    mostrarAlerta('Erro de conexão com o servidor', 'error');
   }
 }
 
@@ -229,14 +238,14 @@ function configurarModal() {
     const max = parseFloat(inputKwh.getAttribute('max')) || Infinity;
 
     // ✅ Validação de quantidade
-    if (!kwh || kwh <= 0) {
-      alert('Informe uma quantidade válida.');
+    if (!kwh || kwh <= 0 || isNaN(kwh)) {
+      mostrarAlerta('Informe uma quantidade válida.', 'warning');
       return;
     }
 
     // ✅ Validação de limite
     if (max > 0 && kwh > max) {
-      alert(`Você só pode solicitar até ${max} kWh (seu consumo médio)`);
+      mostrarAlerta(`Você só pode solicitar até ${max} kWh (seu consumo médio)`, 'warning');
       return;
     }
 
@@ -250,15 +259,51 @@ function configurarModal() {
       const data = await resp.json();
 
       if (data.sucesso) {
-        alert(data.mensagem);
+        mostrarAlerta('✅ ' + data.mensagem, 'success');
         modal.style.display = 'none';
-        await carregarDados(); // ✅ Recarrega dados
+        await carregarDados();
       } else {
-        alert(data.mensagem || 'Erro ao solicitar');
+        mostrarAlerta('❌ ' + (data.mensagem || 'Erro ao solicitar'), 'error');
       }
     } catch (err) {
       console.error('Erro:', err);
-      alert('Erro de conexão com o servidor');
+      mostrarAlerta('Erro de conexão com o servidor', 'error');
     }
   };
+}
+
+// ============================================
+// SISTEMA DE ALERTAS INTERATIVOS (IGUAL AO DOADOR)
+// ============================================
+function mostrarAlerta(mensagem, tipo = 'info') {
+  // Remove alertas existentes
+  const alertaExistente = document.querySelector('.alerta-flutuante');
+  if (alertaExistente) {
+    alertaExistente.remove();
+  }
+
+  // Cria novo alerta
+  const alerta = document.createElement('div');
+  alerta.className = `alerta-flutuante alerta-${tipo}`;
+  
+  let icone = '📢';
+  if (tipo === 'success') icone = '✅';
+  else if (tipo === 'error') icone = '❌';
+  else if (tipo === 'warning') icone = '⚠️';
+  
+  alerta.innerHTML = `
+    <span class="alerta-icone">${icone}</span>
+    <span class="alerta-mensagem">${mensagem}</span>
+    <button class="alerta-fechar" onclick="this.parentElement.remove()">×</button>
+  `;
+  
+  document.body.appendChild(alerta);
+  
+  // Remove automaticamente após 5 segundos
+  setTimeout(() => {
+    if (alerta.parentElement) {
+      alerta.style.animation = 'slideOut 0.3s ease-out';
+      setTimeout(() => alerta.remove(), 300);
+    }
+  }, 5000);
 }

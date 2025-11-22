@@ -20,9 +20,9 @@ class Database:
                 port="5432"
             )
             self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
-            print("✅ Conexão com o banco de dados estabelecida com sucesso!")
+            print("Conexão com o banco de dados estabelecida com sucesso!")
         except psycopg2.Error as e:
-            print("❌ Erro ao conectar ao banco de dados:", e)
+            print("Erro ao conectar ao banco de dados:", e)
             self.conn = None
     def _rollback_if_needed(self):
         """
@@ -128,10 +128,7 @@ class Database:
         self.cursor.close()
         self.conn.close()
 
-    # ============================================
     # AUTENTICAÇÃO E CADASTRO
-    # ============================================
-    
     def criar_usuario_simples(self, nome, email, senha, tipo_usuario='DOADOR'):
         """
         Cria novo usuário no sistema com:
@@ -238,10 +235,7 @@ class Database:
         """
         self.executar(query, (email,))
 
-    # ============================================
     # DOADOR
-    # ============================================
-
     def criar_doador(self, id_usuario, classificacao='PESSOA_FISICA'):
         """ 
         Cria registro de doador vinculado ao usuário.
@@ -274,7 +268,7 @@ class Database:
     def criar_beneficiario_simples(self, id_usuario):
         """
         Cria registro de beneficiário vinculado ao usuário.
-        ✅ NOVO: Método para garantir criação do beneficiário
+        Método para garantir criação do beneficiário
     
         Parâmetros:
         - id_usuario: ID do usuário criado anteriormente
@@ -313,7 +307,7 @@ class Database:
                 except Exception:
                     pass
 
-            print(f"✅ Beneficiário criado: id_beneficiario={id_beneficiario} para usuario_id={id_usuario}")
+            print(f"Beneficiário criado: id_beneficiario={id_beneficiario} para usuario_id={id_usuario}")
 
             return id_beneficiario
         
@@ -321,10 +315,7 @@ class Database:
             self.conn.rollback()
             raise Exception(f"Erro ao criar beneficiário: {str(e)}")
 
-    # ============================================
     # CRUD DE USUÁRIOS
-    # ============================================
-
     def listar_usuarios(self, limite=100):
         """
         Lista todos os usuários cadastrados com:
@@ -399,7 +390,7 @@ class Database:
             cursor = self.executar(query_usuario, (nome, email, id_usuario))
             usuario_atualizado = cursor.fetchone()
         
-            # 3. ✅ Atualizar login na tabela credencial_usuario
+            # 3. Atualizar login na tabela credencial_usuario
             query_login = """
                 UPDATE credencial_usuario
                 SET login = %s
@@ -506,13 +497,11 @@ class Database:
             return True
 
         except Exception as e:
-            print(f"❌ Erro ao excluir usuário: {e}")
+            print(f"Erro ao excluir usuário: {e}")
             raise
 
-    # ============================================
-    # LOG DE AUDITORIA
-    # ============================================
 
+    # LOG DE AUDITORIA
     def registrar_log_auditoria(self, id_usuario, tipo_acao, ip_acesso=None, detalhes=None):
         """
         Registra ação do usuário para auditoria:
@@ -529,12 +518,12 @@ class Database:
         """
         # Buscar ID do tipo de ação
         try:
-            # ✅ Buscar ID do tipo de ação
+            # Buscar ID do tipo de ação
             query_tipo = "SELECT id_tipo_acao FROM tipo_acao WHERE descricao_tipo_acao = %s"
             tipo = self.buscar_um(query_tipo, (tipo_acao,))
             id_tipo_acao = tipo['id_tipo_acao'] if tipo else 1
 
-            # ✅ Buscar ID do tipo de dispositivo (WEB)
+            # Buscar ID do tipo de dispositivo (WEB)
             query_disp = """
                 SELECT id_tipo_dispositivo FROM tipo_dispositivo 
                 WHERE descricao_tipo_dispositivo = 'WEB'
@@ -542,7 +531,7 @@ class Database:
             disp = self.buscar_um(query_disp)
             id_disp = disp['id_tipo_dispositivo'] if disp else 1
 
-            # ✅ Buscar ID do status (SUCESSO)
+            # Buscar ID do status (SUCESSO)
             query_status = """
                 SELECT id_status_log FROM status_log 
                 WHERE descricao_status_log = 'SUCESSO'
@@ -550,7 +539,7 @@ class Database:
             status = self.buscar_um(query_status)
             id_status = status['id_status_log'] if status else 1
 
-            # ✅ Inserir log (permite NULL em id_usuario)
+            # Inserir log (permite NULL em id_usuario)
             query = """
                 INSERT INTO log_auditoria 
                 (ip_acesso, data_hora, detalhes, id_usuario, id_tipo_acao, id_tipo_dispositivo, id_status_log)
@@ -565,14 +554,11 @@ class Database:
             return resultado['id_log'] if resultado else None
         
         except Exception as e:
-            print(f"❌ ERRO ao registrar log: {e}")
+            print(f"ERRO ao registrar log: {e}")
             # Não lança exceção para não quebrar o fluxo principal
             return None
 
-    # ============================================
     # GESTÃO DE CRÉDITOS
-    # ============================================
-    
     def criar_credito(
         self, 
         id_doador: int, 
@@ -714,19 +700,53 @@ class Database:
         self.executar(query, (quantidade_atual, id_credito))
     
     def atualizar_status_credito(self, id_credito: int) -> None:
-        """
-        Atualiza status do crédito baseado na quantidade disponível e expiração.
+        try:
+            # Busca quantidade atual
+            query = "SELECT quantidade_disponivel_kwh, data_expiracao FROM credito WHERE id_credito = %s"
+            result = self.buscar_um(query, (id_credito,))
         
-        Args:
-            id_credito: ID do crédito
-        """
-        query = "SELECT atualizar_status_credito(%s)"
-        self.executar(query, (id_credito,))
+            if not result:
+                return
+        
+            qtd_disponivel = float(result['quantidade_disponivel_kwh'])
+            data_exp = result['data_expiracao']
+        
+            # Define novo status
+            if data_exp and data_exp < date.today():
+                novo_status = 'EXPIRADO'
+            elif qtd_disponivel <= 0:
+                novo_status = 'ESGOTADO'
+            elif qtd_disponivel > 0:
+                # Verifica se já foi parcialmente utilizado
+                query_consumo = """
+                    SELECT COUNT(*) as transacoes 
+                    FROM transacao 
+                    WHERE id_credito = %s
+                """
+                consumo = self.buscar_um(query_consumo, (id_credito,))
+            
+                if consumo and int(consumo['transacoes']) > 0:
+                    novo_status = 'PARCIALMENTE_UTILIZADO'
+                else:
+                    novo_status = 'DISPONIVEL'
+            else:
+                novo_status = 'DISPONIVEL'
+        
+            # Busca ID do status
+            query_status = "SELECT id_status_credito FROM status_credito WHERE descricao_status = %s"
+            status = self.buscar_um(query_status, (novo_status,))
+        
+            if status:
+                self.executar(
+                    "UPDATE credito SET id_status_credito = %s WHERE id_credito = %s",
+                    (status['id_status_credito'], id_credito)
+                )
+            
+        except Exception as e:
+            print(f"Erro ao atualizar status do crédito {id_credito}: {e}")
     
-    # ============================================
+
     # FILA DE ESPERA
-    # ============================================
-    
     def entrar_na_fila(
         self,
         id_beneficiario: int,
@@ -735,12 +755,10 @@ class Database:
         num_moradores: int
     ) -> int:
         """
-        ✅ CORRIGIDO: Usa _set_autocommit_safe para evitar conflitos
+            Usa _set_autocommit_safe para evitar conflitos
         """
         try:
-            print(f"🔵 entrar_na_fila chamado para id_beneficiario={id_beneficiario}")
-        
-            # ✅ USA O MÉTODO SEGURO para desligar autocommit
+            print(f"entrar_na_fila chamado para id_beneficiario={id_beneficiario}")
             self._set_autocommit_safe(False)
         
             # Verifica se já está na fila AGUARDANDO
@@ -756,7 +774,7 @@ class Database:
             if existe:
                 self.conn.rollback()
                 self._set_autocommit_safe(True)
-                print(f"⚠️ Beneficiário já está na fila: id_fila={existe['id_fila']}")
+                print(f"Beneficiário já está na fila: id_fila={existe['id_fila']}")
                 raise ValueError("Beneficiário já está na fila de espera")
         
             # Busca ID do status AGUARDANDO
@@ -767,7 +785,7 @@ class Database:
             status = self.buscar_um(query_status)
             id_status = status['id_status_fila'] if status else 1
         
-            print(f"📊 Status AGUARDANDO: id={id_status}")
+            print(f"Status AGUARDANDO: id={id_status}")
         
             # Calcula prioridade 
             query_prioridade = """
@@ -779,19 +797,19 @@ class Database:
             )
             prioridade = result_prior['prioridade']
         
-            print(f"🎯 Prioridade calculada: {prioridade}")
+            print(f"Prioridade calculada: {prioridade}")
         
-            # ✅ CRÍTICO: Verifica se beneficiário existe com LOCK
+            #Verifica se beneficiário existe com LOCK
             query_verifica = "SELECT id_beneficiario FROM beneficiario WHERE id_beneficiario = %s FOR UPDATE"
             verifica = self.buscar_um(query_verifica, (id_beneficiario,))
         
             if not verifica:
                 self.conn.rollback()
                 self._set_autocommit_safe(True)
-                print(f"❌ ERRO CRÍTICO: Beneficiário {id_beneficiario} não existe!")
+                print(f"ERRO CRÍTICO: Beneficiário {id_beneficiario} não existe!")
                 raise ValueError(f"Beneficiário {id_beneficiario} não encontrado")
         
-            print(f"✅ Beneficiário {id_beneficiario} confirmado no banco")
+            print(f"Beneficiário {id_beneficiario} confirmado no banco")
         
             # Insere na fila
             query = """
@@ -820,29 +838,27 @@ class Database:
                 raise Exception("Falha ao inserir na fila")
         
             id_fila = resultado['id_fila']
-        
-            # ✅ COMMIT EXPLÍCITO
             self.conn.commit()
         
-            print(f"✅ Inserido na fila com sucesso: id_fila={id_fila}")
+            print(f"Inserido na fila com sucesso: id_fila={id_fila}")
         
             # Verifica APÓS commit
             self._set_autocommit_safe(True)
             verifica_pos = self.buscar_um("SELECT id_beneficiario FROM beneficiario WHERE id_beneficiario = %s", (id_beneficiario,))
             if not verifica_pos:
-                print(f"❌ ALERTA: Beneficiário {id_beneficiario} desapareceu após commit!")
+                print(f"ALERTA: Beneficiário {id_beneficiario} desapareceu após commit!")
             else:
-                print(f"✅ Beneficiário {id_beneficiario} ainda existe após inserção")
+                print(f"Beneficiário {id_beneficiario} ainda existe após inserção")
         
             return id_fila
         
         except ValueError as ve:
             self.conn.rollback()
             self._set_autocommit_safe(True)
-            print(f"⚠️ ValueError: {ve}")
+            print(f"ValueError: {ve}")
             raise
         except Exception as e:
-            print(f"❌ ERRO em entrar_na_fila: {e}")
+            print(f"ERRO em entrar_na_fila: {e}")
             import traceback
             traceback.print_exc()
             self.conn.rollback()
@@ -865,17 +881,8 @@ class Database:
         """
         return self.buscar_todos(query, (top,))
     
-    # ============================================
     # DISTRIBUIÇÃO AUTOMÁTICA
-    # ============================================
-    
     def executar_distribuicao(self, limite: int = 10) -> dict:
-        """
-        Distribui créditos para os beneficiários prioritários.
-        - Marca ATENDIDO apenas se o beneficiário recebeu > 0 kWh
-        - Conta beneficiários atendidos como DISTINCT por id_beneficiario
-        - Garante reset de autocommit em qualquer saída
-        """
         self._set_autocommit_safe(False)
         try:
             # 1) Créditos disponíveis com lock
@@ -893,6 +900,7 @@ class Database:
 
             if not creditos:
                 self.conn.rollback()
+                self._set_autocommit_safe(True)
                 return {
                     'total_distribuido': 0.0,
                     'beneficiarios_atendidos': 0,
@@ -920,6 +928,7 @@ class Database:
 
             if not beneficiarios:
                 self.conn.rollback()
+                self._set_autocommit_safe(True)
                 return {
                     'total_distribuido': 0.0,
                     'beneficiarios_atendidos': 0,
@@ -936,13 +945,7 @@ class Database:
             id_status_fila_atendido = self.buscar_um(
                 "SELECT id_status_fila FROM status_fila WHERE descricao_status_fila = 'ATENDIDO'")['id_status_fila']
 
-            # 3) Alocações alvo (proporcional)
-            # Observação: não devemos distribuir MAIS do que o beneficiário solicitou.
-            # Antes havia um "kwh_minimo = max(consumo_medio, 50)" e em seguida
-            # "kwh_alvo = max(kwh_alocado, kwh_minimo)" — isso fazia com que, quando
-            # existia apenas um beneficiário, ele recebesse todo o montante disponível
-            # mesmo que tivesse solicitado menos (causando o problema relatado).
-            # Correção: limitar o alvo ao valor solicitado quando houver uma solicitação.
+            # 3) Alocações alvo (respeitando limite solicitado)
             soma_prioridades = float(sum(b['prioridade'] for b in beneficiarios)) or 1.0
             alocacoes = []
             for benef in beneficiarios:
@@ -950,8 +953,7 @@ class Database:
                 kwh_alocado = total_kwh_disponivel * peso
                 solicitado = float(benef.get('consumo_medio_kwh') or 0)
 
-                # Se o beneficiário informou um valor solicitado (>0), não distribuímos
-                # mais do que esse valor. Caso contrário, usamos a alocação proporcional.
+                #NUNCA distribuir mais do que foi solicitado
                 if solicitado > 0:
                     kwh_alvo = min(kwh_alocado, solicitado)
                 else:
@@ -969,12 +971,10 @@ class Database:
             transacoes_criadas = []
             creditos_usados = set()
 
-            # percorre beneficiários
             for alocacao in alocacoes:
                 kwh_restante = float(alocacao['kwh_alvo'])
-                distribuido_benef = 0.0  # <<< acumulador POR beneficiário
+                distribuido_benef = 0.0
 
-                # consome de vários créditos enquanto houver alvo e saldo
                 for credito in creditos:
                     if kwh_restante <= 0.0:
                         break
@@ -983,7 +983,7 @@ class Database:
 
                     kwh_consumir = float(min(kwh_restante, float(credito['quantidade_disponivel_kwh'])))
 
-                    # cria transação
+                    #CRÍTICO: INCLUI id_credito na transação
                     cursor_trans = self.executar(
                         """
                         INSERT INTO transacao (
@@ -997,17 +997,17 @@ class Database:
                     )
                     id_transacao = cursor_trans.fetchone()['id_transacao']
 
-                    # debita crédito
+                    # Debita crédito
                     nova_qtd = float(credito['quantidade_disponivel_kwh']) - kwh_consumir
                     self.executar(
                         "UPDATE credito SET quantidade_disponivel_kwh = %s WHERE id_credito = %s",
                         (nova_qtd, credito['id_credito'])
                     )
 
-                    # status do crédito
+                    # Atualiza status do crédito
                     self.atualizar_status_credito(credito['id_credito'])
 
-                    # histórico (snapshot)
+                    # Histórico
                     self.registrar_historico_credito(
                         id_credito=credito['id_credito'],
                         evento='CONSUMO',
@@ -1018,10 +1018,10 @@ class Database:
                         }
                     )
 
-                    # atualiza acumuladores
+                    # Atualiza acumuladores
                     credito['quantidade_disponivel_kwh'] = nova_qtd
                     total_distribuido += kwh_consumir
-                    distribuido_benef += kwh_consumir         # <<< soma do beneficiário
+                    distribuido_benef += kwh_consumir
                     kwh_restante -= kwh_consumir
                     creditos_usados.add(credito['id_credito'])
 
@@ -1033,25 +1033,24 @@ class Database:
                         'quantidade_kwh': kwh_consumir
                     })
 
-                # MARCA ATENDIDO **APENAS** SE ESTE BENEFICIÁRIO RECEBEU ALGO
+                # MARCA ATENDIDO APENAS SE RECEBEU ALGO
                 if distribuido_benef > 0.0:
                     self.executar(
                         "UPDATE fila_espera SET id_status_fila = %s WHERE id_fila = %s",
                         (id_status_fila_atendido, alocacao['id_fila'])
                     )
-                # else: mantém AGUARDANDO (ou poderia ajustar prioridade/tempo)
 
-            # 5) Auditoria da execução
+            # 5) Auditoria
             self.registrar_log_auditoria(
                 id_usuario=None,
                 tipo_acao='DISTRIBUICAO',
                 detalhes=f"Distribuídos {total_distribuido:.2f} kWh em {len(transacoes_criadas)} transações"
             )
 
-            # 6) Commit e retorno
+            # 6) Commit
             self.conn.commit()
 
-            beneficiarios_distintos = { t['id_beneficiario'] for t in transacoes_criadas }
+            beneficiarios_distintos = {t['id_beneficiario'] for t in transacoes_criadas}
             return {
                 'total_distribuido': round(total_distribuido, 2),
                 'beneficiarios_atendidos': len(beneficiarios_distintos),
@@ -1064,5 +1063,3 @@ class Database:
             raise Exception(f"Erro na distribuição: {str(e)}")
         finally:
             self._set_autocommit_safe(True)
-
-

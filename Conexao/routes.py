@@ -1,4 +1,4 @@
-# --- Caminho para o BackEnd ---
+#Caminho para o diretorio BackEnd 
 import os, sys
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
@@ -14,7 +14,7 @@ class Routes:
     """
     Classe responsável por gerenciar as rotas da aplicação.
     
-    ✅ CORREÇÕES IMPLEMENTADAS:
+    implementações importantes:
     - id_beneficiario sempre carregado na sessão após login
     - Verificação de sessão antes de cada operação
     - Logs detalhados para debug
@@ -29,14 +29,8 @@ class Routes:
         self.db = Database()
         self.sessao = Routes._sessao_global
     
-    # ============================================
     # AUTENTICAÇÃO
-    # ============================================
-    
     def login(self, dados):
-        """
-        ✅ CORRIGIDO: Sempre carrega id_beneficiario na sessão
-        """
         email = dados.get('email')
         senha = dados.get('password')
         
@@ -51,21 +45,20 @@ class Routes:
             Routes._sessao_global['id_doador'] = None
             Routes._sessao_global['id_beneficiario'] = None
             
-            # ✅ SEMPRE carrega ID do beneficiário/doador
             if usuario['tipo_usuario'] == 'BENEFICIARIO':
-                print(f"🔑 Login detectado como BENEFICIÁRIO. usuario_id={usuario['id_usuario']}")
+                print(f"Login detectado como BENEFICIÁRIO. usuario_id={usuario['id_usuario']}")
                 query_benef = "SELECT id_beneficiario FROM beneficiario WHERE id_usuario = %s"
                 result = self.db.buscar_um(query_benef, (usuario['id_usuario'],))
                 
                 if result:
                     Routes._sessao_global['id_beneficiario'] = result['id_beneficiario']
-                    print(f"✅ Login beneficiário: id_beneficiario={result['id_beneficiario']}")
+                    print(f"Login beneficiário: id_beneficiario={result['id_beneficiario']}")
                 else:
                     # Cria beneficiário se não existir
-                    print(f"⚠️ Beneficiário não encontrado, criando...")
+                    print(f"Beneficiário não encontrado, criando...")
                     id_benef = self.db.criar_beneficiario_simples(usuario['id_usuario'])
                     Routes._sessao_global['id_beneficiario'] = id_benef
-                    print(f"✅ Beneficiário criado: id_beneficiario={id_benef}")
+                    print(f"Beneficiário criado: id_beneficiario={id_benef}")
             
             elif usuario['tipo_usuario'] == 'DOADOR':
                 query_doador = "SELECT id_doador FROM doador WHERE id_usuario = %s"
@@ -73,7 +66,7 @@ class Routes:
                 
                 if result:
                     Routes._sessao_global['id_doador'] = result['id_doador']
-                    print(f"✅ Login doador: id_doador={result['id_doador']}")
+                    print(f"Login doador: id_doador={result['id_doador']}")
             
             self.db.atualizar_ultimo_login(email)
             
@@ -100,9 +93,9 @@ class Routes:
                     'redirect': '/completar-cadastro'
                 }
             
-            # Se tudo estiver ok, redireciona para o painel apropriado
+            # Se tudo estiver ok (com perfil com todas as informações completas), redireciona para o painel apropriado
             redirect = '/painel-beneficiario' if usuario['tipo_usuario'] == 'BENEFICIARIO' else '/painel-doador'
-            print(f"🚀 Sessão global após login: {Routes._sessao_global}")
+            print(f"Sessão global após login: {Routes._sessao_global}")
             self.sessao = Routes._sessao_global.copy()
 
             return {
@@ -116,8 +109,8 @@ class Routes:
                 'mensagem': 'Email ou senha incorretos'
             }
     
+    #Retorna sessão completa após cadastro
     def cadastro_inicial(self, dados):
-        """ Retorna sessão completa após cadastro"""
         try:
             nome_completo = f"{dados.get('firstName', '')} {dados.get('lastName', '')}".strip()
     
@@ -137,8 +130,8 @@ class Routes:
         
             self.sessao = Routes._sessao_global.copy()
         
-            print(f"✅ Cadastro inicial completo: usuario_id={id_usuario}")
-            print(f"📦 Sessão criada: {Routes._sessao_global}")
+            print(f"Cadastro inicial completo: usuario_id={id_usuario}")
+            print(f"Sessão criada: {Routes._sessao_global}")
         
             self.db.registrar_log_auditoria(
                 id_usuario=id_usuario,
@@ -153,32 +146,34 @@ class Routes:
             }
     
         except Exception as e:
-            print(f"❌ ERRO CADASTRO: {e}")
+            erro_str = str(e).lower()
+            print(f"ERRO CADASTRO: {e}")
             import traceback
             traceback.print_exc()
+        
+            if 'unique' in erro_str or 'credencial_usuario_login_key' in erro_str or 'duplicat' in erro_str or 'chave' in erro_str:
+                return {
+                    'sucesso': False,
+                    'mensagem': 'Esse e-mail já está sendo utilizado. Tente fazer o login ou faça o cadastro com outro e-mail.'
+                }
+        
             return {
                 'sucesso': False,
-                'mensagem': f'Erro ao cadastrar: {str(e)}'
+                'mensagem': 'Erro ao cadastrar. Verifique seus dados e tente novamente.'
             }
-    
-    # ============================================
+        
     # COMPLETAR CADASTRO DO BENEFICIÁRIO
-    # ============================================
-    
     def completar_cadastro_beneficiario(self, dados):
-        """
-        ✅ CORRIGIDO: Garante que id_beneficiario sempre existe
-        """
         try:
             usuario_id = self.sessao.get('usuario_id')
             id_beneficiario = self.sessao.get('id_beneficiario')
             
-            print(f"📋 completar_cadastro_beneficiario: usuario_id={usuario_id}, id_beneficiario={id_beneficiario}")
+            print(f"completar_cadastro_beneficiario: usuario_id={usuario_id}, id_beneficiario={id_beneficiario}")
             
             if not usuario_id:
                 return {'sucesso': False, 'mensagem': 'Usuário não autenticado'}
 
-            # ✅ SEMPRE verifica se beneficiário existe
+            #verifica se beneficiário existe
             if not id_beneficiario:
                 query_existe = "SELECT id_beneficiario FROM beneficiario WHERE id_usuario = %s"
                 result = self.db.buscar_um(query_existe, (usuario_id,))
@@ -186,11 +181,11 @@ class Routes:
                 if result:
                     id_beneficiario = result['id_beneficiario']
                     Routes._sessao_global['id_beneficiario'] = id_beneficiario
-                    print(f"✅ Beneficiário encontrado: id_beneficiario={id_beneficiario}")
+                    print(f"Beneficiário encontrado: id_beneficiario={id_beneficiario}")
                 else:
                     id_beneficiario = self.db.criar_beneficiario_simples(usuario_id)
                     Routes._sessao_global['id_beneficiario'] = id_beneficiario
-                    print(f"✅ Beneficiário criado: id_beneficiario={id_beneficiario}")
+                    print(f"Beneficiário criado: id_beneficiario={id_beneficiario}")
 
             # Busca dados atuais
             row = self.db.buscar_um(
@@ -242,7 +237,7 @@ class Routes:
                 WHERE id_beneficiario = %s
             """, (id_renda, id_consumo, num_moradores, id_beneficiario))
             
-            print(f"✅ Cadastro beneficiário atualizado: id_beneficiario={id_beneficiario}")
+            print(f"Cadastro beneficiário atualizado: id_beneficiario={id_beneficiario}")
         
             self.db.registrar_log_auditoria(
                 id_usuario=usuario_id,
@@ -257,54 +252,46 @@ class Routes:
             }
 
         except Exception as e:
-            print(f"❌ ERRO COMPLETAR BENEFICIARIO: {e}")
+            print(f"ERRO COMPLETAR BENEFICIARIO: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
     
-    # ============================================
     # DASHBOARD DO BENEFICIÁRIO
-    # ============================================
-    
     def obter_dados_beneficiario(self):
-        """
-        ✅ CORRIGIDO: Verifica sessão antes de buscar dados
-        """
-        
         try:
             id_beneficiario = self.sessao.get('id_beneficiario')
             usuario_id = self.sessao.get('usuario_id')
 
             print(f"📦 Sessão atual em obter_dados_beneficiario: {self.sessao}")
             print(f"🔍 obter_dados_beneficiario: id_beneficiario={id_beneficiario}, usuario_id={usuario_id}")
-            
-            # ✅ Se não tem id_beneficiario na sessão, tenta buscar
+        
             if not id_beneficiario and usuario_id:
                 query_benef = "SELECT id_beneficiario FROM beneficiario WHERE id_usuario = %s"
                 result = self.db.buscar_um(query_benef, (usuario_id,))
-                
+            
                 if result:
                     id_beneficiario = result['id_beneficiario']
                     Routes._sessao_global['id_beneficiario'] = id_beneficiario
-                    print(f"✅ id_beneficiario recuperado da base: {id_beneficiario}")
+                    print(f"id_beneficiario recuperado da base: {id_beneficiario}")
                 else:
-                    print(f"❌ Beneficiário não existe no banco para usuario_id={usuario_id}")
+                    print(f"Beneficiário não existe no banco para usuario_id={usuario_id}")
                     return {'sucesso': False, 'mensagem': 'Beneficiário não encontrado. Complete seu cadastro.'}
-            
+        
             if not id_beneficiario:
-                print(f"❌ id_beneficiario não encontrado na sessão")
+                print(f"id_beneficiario não encontrado na sessão")
                 return {'sucesso': False, 'mensagem': 'Sessão inválida. Faça login novamente.'}
-        
+    
             print(f"🔍 Buscando dados do beneficiário id={id_beneficiario}")
-        
+    
             # Dados básicos
             query_dados = """
                 SELECT b.id_beneficiario, 
-                       COALESCE(b.num_moradores, 0) AS num_moradores,
-                       COALESCE(rb.valor_renda, 0) AS valor_renda, 
-                       COALESCE(cb.media_kwh, 0) AS media_kwh,
-                       COALESCE(sb.descricao_status_beneficiario, 'AGUARDANDO_APROVACAO') AS descricao_status_beneficiario,
-                       u.nome, u.email
+                    COALESCE(b.num_moradores, 0) AS num_moradores,
+                    COALESCE(rb.valor_renda, 0) AS valor_renda, 
+                    COALESCE(cb.media_kwh, 0) AS media_kwh,
+                    COALESCE(sb.descricao_status_beneficiario, 'AGUARDANDO_APROVACAO') AS descricao_status_beneficiario,
+                    u.nome, u.email
                 FROM beneficiario b
                 JOIN usuario u ON b.id_usuario = u.id_usuario
                 LEFT JOIN renda_beneficiario rb ON b.id_renda = rb.id_renda
@@ -315,10 +302,10 @@ class Routes:
             dados_basicos = self.db.buscar_um(query_dados, (id_beneficiario,))
 
             if not dados_basicos:
-                print(f"❌ ERRO: Nenhum dado retornado para id_beneficiario={id_beneficiario}")
+                print(f"ERRO: Nenhum dado retornado para id_beneficiario={id_beneficiario}")
                 return {'sucesso': False, 'mensagem': 'Dados do beneficiário não encontrados'}
-            
-            print(f"✅ Dados básicos encontrados: {dados_basicos}")
+        
+            print(f"Dados básicos encontrados: {dados_basicos}")
 
             # Posição na fila
             query_fila = """
@@ -333,19 +320,19 @@ class Routes:
                         JOIN status_fila sf2 ON f2.id_status_fila = sf2.id_status_fila
                         WHERE sf2.descricao_status_fila = 'AGUARDANDO'
                           AND (
-                              f2.prioridade > f.prioridade 
-                              OR (f2.prioridade = f.prioridade AND f2.data_entrada < f.data_entrada)
-                          )
+                            f2.prioridade > f.prioridade 
+                            OR (f2.prioridade = f.prioridade AND f2.data_entrada < f.data_entrada)
+                        )
                     ) AS posicao_fila
                 FROM fila_espera f
                 JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
                 WHERE f.id_beneficiario = %s
-                  AND sf.descricao_status_fila = 'AGUARDANDO'
+                    AND sf.descricao_status_fila = 'AGUARDANDO'
                 ORDER BY f.data_entrada DESC
                 LIMIT 1
             """
             fila_info = self.db.buscar_um(query_fila, (id_beneficiario,))
-        
+    
             # Histórico
             query_historico = """
                 SELECT 
@@ -359,10 +346,10 @@ class Routes:
                             FROM fila_espera f2 
                             JOIN status_fila sf2 ON f2.id_status_fila = sf2.id_status_fila
                             WHERE sf2.descricao_status_fila = 'AGUARDANDO'
-                              AND (
-                                  f2.prioridade > f.prioridade 
-                                  OR (f2.prioridade = f.prioridade AND f2.data_entrada < f.data_entrada)
-                              )
+                                AND (
+                                    f2.prioridade > f.prioridade 
+                                    OR (f2.prioridade = f.prioridade AND f2.data_entrada < f.data_entrada)
+                                )
                         ),
                         0
                     ) AS posicao_fila,
@@ -377,18 +364,19 @@ class Routes:
                 ORDER BY f.data_entrada DESC
             """
             historico = self.db.buscar_todos(query_historico, (id_beneficiario,))
-        
-            # Total recebido
+    
+            #Total recebido APENAS de transações CONCLUÍDAS
             query_total = """
                 SELECT COALESCE(SUM(t.quantidade_kwh), 0) AS total_recebido
                 FROM transacao t
                 JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao
                 WHERE t.id_beneficiario = %s
-                  AND st.descricao_status = 'CONCLUIDA'
+                    AND st.descricao_status = 'CONCLUIDA'
+                    AND t.id_credito IS NOT NULL
             """
             result_total = self.db.buscar_um(query_total, (id_beneficiario,))
             total_recebido = float(result_total['total_recebido']) if result_total else 0
-        
+    
             return {
                 'sucesso': True,
                 'dados': {
@@ -398,17 +386,14 @@ class Routes:
                     'historico': historico
                 }
             }
-        
+    
         except Exception as e:
-            print(f"❌ ERRO OBTER DADOS BENEFICIARIO: {e}")
+            print(f"ERRO OBTER DADOS BENEFICIARIO: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
     
     def criar_solicitacao_beneficiario(self, dados):
-        """
-        ✅ CORRIGIDO: Usa isolamento de transação para evitar perda de dados
-        """
         try:
             id_beneficiario = self.sessao.get('id_beneficiario')
             
@@ -444,7 +429,7 @@ class Routes:
                     'mensagem': f'Você só pode solicitar até {consumo_medio} kWh (seu consumo médio mensal)'
                 }
             
-            # Verifica se já está na fila
+            #Verifica se já está na fila
             query_fila_existe = """
                 SELECT f.id_fila 
                 FROM fila_espera f
@@ -460,7 +445,7 @@ class Routes:
                     'mensagem': 'Você já possui uma solicitação aguardando.'
                 }
             
-            # ✅ Insere na fila
+            #Insere na fila
             self.db.entrar_na_fila(
                 id_beneficiario=id_beneficiario,
                 renda_familiar=float(benef_dados['valor_renda'] or 0),
@@ -470,25 +455,23 @@ class Routes:
             
             mensagem = f'Solicitação de {quantidade_solicitada} kWh registrada! Você entrou na fila.'
             
-            # Tenta distribuição
+            #Tenta distribuição
             try:
                 resultado_dist = self.db.executar_distribuicao(limite=10)
                 if resultado_dist.get('beneficiarios_atendidos', 0) > 0:
                     mensagem += f" {resultado_dist['beneficiarios_atendidos']} beneficiário(s) atendido(s)!"
             except Exception as e:
-                print(f"⚠️ Distribuição falhou: {e}")
+                print(f"Distribuição falhou: {e}")
             
             return {'sucesso': True, 'mensagem': mensagem}
             
         except Exception as e:
-            print(f"❌ ERRO CRIAR SOLICITACAO: {e}")
+            print(f"ERRO CRIAR SOLICITACAO: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
 
-    # ============================================
-    # DOADOR
-    # ============================================
+    # DASHBOARD DOADOR
     def obter_dados_doador(self):
         """Retorna dados agregados para o painel do doador."""
         try:
@@ -499,34 +482,41 @@ class Routes:
 
             id_doador = self.sessao.get('id_doador')
             
-            # ✅ Tenta recuperar id_doador se não estiver na sessão
+            #Tenta recuperar id_doador se não estiver na sessão
             if not id_doador:
                 q = "SELECT id_doador FROM doador WHERE id_usuario = %s"
                 r = self.db.buscar_um(q, (usuario_id,))
                 if r:
                     id_doador = r['id_doador']
                     Routes._sessao_global['id_doador'] = id_doador
-                    print(f"✅ id_doador recuperado: {id_doador}")
+                    print(f"id_doador recuperado: {id_doador}")
 
             if not id_doador:
                 return {'sucesso': False, 'mensagem': 'Doador não encontrado. Complete seu cadastro.'}
 
-            # ✅ Busca dados básicos do doador
+            #Busca dados básicos do doador
             doador = self.db.buscar_um("""
-                SELECT u.nome, u.email, d.* 
+                SELECT 
+                    u.nome, 
+                    u.email, 
+                    d.id_doador,
+                    d.razao_social,
+                    d.cnpj,
+                    cd.descricao_classificacao as classificacao
                 FROM usuario u 
-                JOIN doador d ON d.id_usuario = u.id_usuario 
+                JOIN doador d ON d.id_usuario = u.id_usuario
+                LEFT JOIN classificacao_doador cd ON d.id_classificacao = cd.id_classificacao
                 WHERE d.id_doador = %s
             """, (id_doador,))
 
             if not doador:
                 return {'sucesso': False, 'mensagem': 'Doador não encontrado'}
 
-            print(f"📊 Buscando dados do doador id={id_doador}")
+            print(f"Buscando dados do doador id={id_doador}")
 
-            # ✅ TOTAL DOADO = Soma da quantidade INICIAL de todos os créditos criados
-            # Nota: quantidade_disponivel_kwh diminui conforme distribui, por isso usamos ela como "total doado"
-            # (assumindo que no momento da criação, quantidade_disponivel = quantidade_inicial)
+            #TOTAL DOADO = Soma da quantidade INICIAL de todos os créditos criados
+            #Nota: quantidade_disponivel_kwh diminui conforme distribui, por isso usamos ela como "total doado"
+            #(assumindo que no momento da criação, quantidade_disponivel = quantidade_inicial)
             query_total_doado = """
                 SELECT COALESCE(
                     SUM(
@@ -547,7 +537,7 @@ class Routes:
             result_doado = self.db.buscar_um(query_total_doado, (id_doador,))
             total_doado = float(result_doado['total']) if result_doado else 0.0
 
-            # ✅ TOTAL DISTRIBUÍDO = Soma de TODAS as transações CONCLUÍDAS deste doador
+            #TOTAL DISTRIBUÍDO = Soma de TODAS as transações CONCLUÍDAS deste doador
             query_distribuido = """
                 SELECT COALESCE(SUM(t.quantidade_kwh), 0) as total
                 FROM transacao t
@@ -559,7 +549,7 @@ class Routes:
             result_distribuido = self.db.buscar_um(query_distribuido, (id_doador,))
             total_distribuido = float(result_distribuido['total']) if result_distribuido else 0.0
 
-            # ✅ FAMÍLIAS ATENDIDAS = Número ÚNICO de beneficiários que receberam créditos
+            #FAMÍLIAS ATENDIDAS = Número ÚNICO de beneficiários que receberam créditos
             query_familias = """
                 SELECT COUNT(DISTINCT t.id_beneficiario) as total
                 FROM transacao t
@@ -571,10 +561,10 @@ class Routes:
             result_familias = self.db.buscar_um(query_familias, (id_doador,))
             familias_atendidas = int(result_familias['total']) if result_familias else 0
 
-            # ✅ CO2 REDUZIDO = Total distribuído * fator de conversão (0.356 kg CO2/kWh é uma estimativa comum)
+            #CO2 REDUZIDO = Total distribuído * fator de conversão (0.356 kg CO2/kWh é uma estimativa comum)
             co2_reduzido = round(total_distribuido * 0.356, 2)
 
-            # ✅ HISTÓRICO DE CRÉDITOS (últimos 10)
+            #HISTÓRICO DE CRÉDITOS (últimos 10)
             query_creditos = """
                 SELECT 
                     c.id_credito,
@@ -597,19 +587,22 @@ class Routes:
             """
             creditos = self.db.buscar_todos(query_creditos, (id_doador,))
 
-            # ✅ Adiciona campo quantidade_inicial calculado (disponível + consumido)
+            #Adiciona campo quantidade_inicial calculado (disponível + consumido)
             for credito in creditos:
                 qtd_disponivel = float(credito['quantidade_disponivel_kwh'] or 0)
                 qtd_consumida = float(credito['quantidade_consumida'] or 0)
                 credito['quantidade_inicial'] = round(qtd_disponivel + qtd_consumida, 2)
 
-            print(f"✅ Dados carregados: doado={total_doado}, distribuído={total_distribuido}, famílias={familias_atendidas}")
+            print(f"Dados carregados: doado={total_doado}, distribuído={total_distribuido}, famílias={familias_atendidas}")
 
             return {
                 'sucesso': True,
                 'dados': {
                     'nome': doador['nome'],
                     'email': doador['email'],
+                    'razao_social': doador.get('razao_social'),  
+                    'cnpj': doador.get('cnpj'),                  
+                    'classificacao': doador.get('classificacao'), 
                     'total_doado_kwh': round(total_doado, 2),
                     'total_distribuido_kwh': round(total_distribuido, 2),
                     'familias_atendidas': familias_atendidas,
@@ -619,13 +612,13 @@ class Routes:
             }
 
         except Exception as e:
-            print(f"❌ ERRO OBTER DADOS DOADOR: {e}")
+            print(f"ERRO OBTER DADOS DOADOR: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
 
+    #Cria um crédito para o doador e tenta disparar a distribuição.
     def criar_doacao(self, dados):
-        """Cria um crédito para o doador e tenta disparar a distribuição."""
         try:
             usuario_id = self.sessao.get('usuario_id')
             id_doador = self.sessao.get('id_doador')
@@ -664,17 +657,14 @@ class Routes:
             return {'sucesso': True, 'mensagem': f'Doação registrada ({quantidade} kWh).', 'distribuicao': resultado}
 
         except Exception as e:
-            print(f"❌ ERRO CRIAR DOACAO: {e}")
+            print(f"ERRO CRIAR DOACAO: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
     
-    # ============================================
     # UTILITÁRIOS
-    # ============================================
-    
     def verificar_perfil_completo(self, usuario_id, tipo_usuario):
-        """Verifica se perfil está completo."""
+        #Verifica se perfil está completo.
         try:
             if tipo_usuario == 'BENEFICIARIO':
                 query = """
@@ -703,13 +693,13 @@ class Routes:
             return False  # Se não tem tipo definido, não está completo
             
         except Exception as e:
-            print(f"❌ Erro ao verificar perfil: {str(e)}")
+            print(f"Erro ao verificar perfil: {str(e)}")
             return False
 
     def definir_tipo_perfil(self, tipo_perfil: str):
-        """Define o tipo de perfil do usuário (DOADOR ou BENEFICIARIO) e persiste no banco.
-
-        Retorna dict com sucesso e redirect para completar cadastro.
+        """
+            Define o tipo de perfil do usuário (DOADOR ou BENEFICIARIO) e persiste no banco.
+            Retorna dict com sucesso e redirect para completar cadastro.
         """
         try:
             usuario_id = self.sessao.get('usuario_id')
@@ -732,7 +722,7 @@ class Routes:
 
             return {'sucesso': True, 'mensagem': 'Perfil definido', 'redirect': '/completar-cadastro'}
         except Exception as e:
-            print(f"❌ ERRO definir_tipo_perfil: {e}")
+            print(f"ERRO definir_tipo_perfil: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
@@ -778,7 +768,7 @@ class Routes:
 
             return {'sucesso': True, 'mensagem': 'Cadastro doador completo', 'redirect': '/painel-doador'}
         except Exception as e:
-            print(f"❌ ERRO completar_cadastro_doador: {e}")
+            print(f"ERRO completar_cadastro_doador: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
@@ -790,13 +780,11 @@ class Routes:
             "total_kwh": 1200000.0
         }
     
-    # ============================================
-    # CRUD RÁPIDO: EDITAR / EXCLUIR SOLICITAÇÃO (BENEFICIÁRIO)
-    # ============================================
+    # CRUD: EDITAR / EXCLUIR SOLICITAÇÃO (BENEFICIÁRIO)
     def editar_solicitacao(self, dados):
         """
-        Edita uma solicitação na fila (só enquanto AGUARDANDO).
-        ✅ REGRA: Atualiza data_entrada para NOW(), jogando para o final da fila.
+            Edita uma solicitação na fila (só enquanto AGUARDANDO).
+            REGRA: Atualiza data_entrada para NOW(), jogando para o final da fila.
         """
         try:
             usuario_id = self.sessao.get('usuario_id')
@@ -804,8 +792,24 @@ class Routes:
             if not usuario_id or not id_benef:
                 return {'sucesso': False, 'mensagem': 'Usuário não autenticado'}
 
-            id_fila = int(dados.get('id_fila', 0))
-            nova_qtd = float(dados.get('quantidade_kwh', 0))
+            id_fila_raw = dados.get('id_fila')
+            nova_qtd_raw = dados.get('quantidade_kwh')
+
+            if id_fila_raw is None:
+                return {'sucesso': False, 'mensagem': 'ID da fila não informado'}
+        
+            if nova_qtd_raw is None:
+                return {'sucesso': False, 'mensagem': 'Quantidade não informada'}
+        
+            #Converte para os tipos corretos APÓS validação
+            try:
+                id_fila = int(id_fila_raw)
+                nova_qtd = float(nova_qtd_raw)
+            except (ValueError, TypeError) as e:
+                return {'sucesso': False, 'mensagem': f'Dados inválidos: {str(e)}'}
+        
+            if nova_qtd <= 0:
+                return {'sucesso': False, 'mensagem': 'Quantidade deve ser maior que zero'}
 
             # Busca dados do beneficiário para recalcular prioridade
             benef = self.db.buscar_um("""
@@ -818,7 +822,7 @@ class Routes:
             if not benef:
                 return {'sucesso': False, 'mensagem': 'Beneficiário não encontrado'}
                 
-            # ✅ Busca consumo médio atual para validação
+            #Busca consumo médio atual para validação
             consumo_info = self.db.buscar_um("""
                 SELECT cb.media_kwh 
                 FROM beneficiario b
@@ -827,7 +831,7 @@ class Routes:
             """, (id_benef,))
             
             consumo_medio = float(consumo_info.get('media_kwh', 0)) if consumo_info else 0
-            if consumo_medio > 0 and nova_qtd > consumo_medio:
+            if consumo_medio > 0 and nova_qtd_raw > consumo_medio:
                 return {
                     'sucesso': False, 
                     'mensagem': f'Você só pode solicitar até {consumo_medio} kWh (seu consumo médio mensal)'
@@ -855,7 +859,7 @@ class Routes:
             pri = self.db.buscar_um("SELECT calcular_prioridade(%s, %s, %s, 0) AS prioridade", (renda, nova_qtd, num_moradores))
             prioridade = pri['prioridade'] if pri else 0
 
-            # ✅ CRÍTICO: Atualiza data_entrada para NOW() (joga para o final da fila)
+            #CRÍTICO: Atualiza data_entrada para NOW() (joga para o final da fila)
             self.db.executar(
                 """
                 UPDATE fila_espera
@@ -887,7 +891,7 @@ class Routes:
             return {'sucesso': True, 'mensagem': 'Solicitação atualizada! Você foi reposicionado no final da fila.'}
 
         except Exception as e:
-            print(f"❌ ERRO editar_solicitacao: {e}")
+            print(f"ERRO editar_solicitacao: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
@@ -936,14 +940,12 @@ class Routes:
             return {'sucesso': True, 'mensagem': 'Solicitação cancelada com sucesso'}
 
         except Exception as e:
-            print(f"❌ ERRO excluir_solicitacao: {e}")
+            print(f"ERRO excluir_solicitacao: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
 
-    # ============================================
-    # CRUD RÁPIDO: EDITAR / EXCLUIR DOAÇÃO (DOADOR)
-    # ============================================
+    # CRUD: EDITAR / EXCLUIR DOAÇÃO (DOADOR)
     def editar_doacao(self, dados):
         """
         Permite editar um crédito (quantidade) somente se NÃO houve transações vinculadas.
@@ -963,7 +965,7 @@ class Routes:
             if row['id_doador'] != id_doador:
                 return {'sucesso': False, 'mensagem': 'Permissão negada'}
 
-            # ✅ Verifica se já houve transações
+            #Verifica se já houve transações
             trans = self.db.buscar_um("SELECT COUNT(*) as cnt FROM transacao WHERE id_credito = %s", (id_credito,))
             if trans and int(trans['cnt']) > 0:
                 return {'sucesso': False, 'mensagem': 'Não é possível editar uma doação que já foi distribuída.'}
@@ -986,7 +988,7 @@ class Routes:
             return {'sucesso': True, 'mensagem': 'Doação atualizada com sucesso'}
 
         except Exception as e:
-            print(f"❌ ERRO editar_doacao: {e}")
+            print(f"ERRO editar_doacao: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
@@ -1033,7 +1035,7 @@ class Routes:
             return {'sucesso': True, 'mensagem': 'Doação excluída com sucesso'}
 
         except Exception as e:
-            print(f"❌ ERRO excluir_doacao: {e}")
+            print(f"ERRO excluir_doacao: {e}")
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}

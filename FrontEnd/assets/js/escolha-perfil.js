@@ -1,5 +1,3 @@
-// /assets/js/escolha-perfil.js
-
 document.addEventListener("DOMContentLoaded", function() {
   let tipoSelecionado = null;
   const btnContinuar = document.getElementById('btn-continuar');
@@ -20,10 +18,15 @@ document.addEventListener("DOMContentLoaded", function() {
   cardDoador.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') selecionar('DOADOR'); };
   cardBeneficiario.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') selecionar('BENEFICIARIO'); };
 
-  // Botão continuar
   btnContinuar.onclick = async function() {
     if (!tipoSelecionado) {
-      alert("Selecione um perfil antes de continuar.");
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Atenção', 
+          message: 'Por favor, selecione um perfil antes de continuar.', 
+          type: 'warning' 
+        });
+      }
       return;
     }
 
@@ -31,39 +34,55 @@ document.addEventListener("DOMContentLoaded", function() {
     btnContinuar.textContent = "Processando...";
 
     try {
-      // Envia exatamente no formato que o backend espera
+      // ✅ CHAMADA CORRIGIDA: Usa a API para definir o perfil
       const resp = await fetch('/api/perfil/escolher', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: tipoSelecionado })
+        credentials: 'same-origin',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          tipo: tipoSelecionado
+        })
       });
-
-      if (!resp.ok && resp.status === 401) {
-        // Se não estiver autenticado, redireciona para o login
-        window.location.href = '/login';
-        return;
-      }
 
       const data = await resp.json();
 
       if (data.sucesso) {
-        if (data.mensagem) {
-          alert(data.mensagem);
-        }
-        // redireciona de acordo com o backend ou para a página padrão
-        window.location.href = data.redirect || '/completar-cadastro';
-      } else {
-        alert(data.mensagem || "Erro ao definir perfil.");
-        if (data.redirect) {
-          window.location.href = data.redirect;
+        // ✅ REDIRECIONAMENTO AUTOMÁTICO para completar-cadastro
+        if (window.showModalAlert) {
+          await window.showModalAlert({ 
+            title: '✅ Perfil Selecionado', 
+            message: `Você escolheu ser ${tipoSelecionado === 'DOADOR' ? 'Doador' : 'Beneficiário'}! Vamos completar seu cadastro.`,
+            type: 'success',
+            onClose: () => {
+              window.location.href = '/completar-cadastro';
+            }
+          });
         } else {
-          btnContinuar.disabled = false;
-          btnContinuar.textContent = "Continuar →";
+          window.location.href = '/completar-cadastro';
         }
+      } else {
+        if (window.showModalAlert) {
+          await window.showModalAlert({ 
+            title: '❌ Erro', 
+            message: data.mensagem || 'Erro ao definir perfil. Tente novamente.', 
+            type: 'error'
+          });
+        }
+        btnContinuar.disabled = false;
+        btnContinuar.textContent = "Continuar →";
       }
 
     } catch (e) {
-      alert('Erro de conexão com o servidor.');
+      console.error('Erro:', e);
+      if (window.showModalAlert) {
+        await window.showModalAlert({ 
+          title: '⚠️ Erro de conexão', 
+          message: 'Não foi possível conectar ao servidor. Verifique se o servidor está rodando e tente novamente.', 
+          type: 'error' 
+        });
+      }
       btnContinuar.disabled = false;
       btnContinuar.textContent = "Continuar →";
     }

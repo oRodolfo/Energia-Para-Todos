@@ -1,0 +1,92 @@
+:root{
+  --modal-bg: rgba(0,0,0,0.65);
+  --modal-panel: #fff;
+  --modal-radius: 10px;
+  --modal-padding: 1rem;
+  --modal-z: 2000;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--modal-bg);
+  opacity:0;
+  transition:opacity .18s ease;
+  z-index:var(--modal-z);
+}
+.modal-overlay.visible{opacity:1}
+
+.modal-dialog{
+  width:clamp(280px, 90%, 560px);
+  background:var(--modal-panel);
+  border-radius:var(--modal-radius);
+  box-shadow:0 10px 30px rgba(0,0,0,0.3);
+  overflow:hidden;
+  transform:translateY(8px) scale(.99);
+  transition:all .18s ease;
+}
+
+.modal-overlay.visible .modal-dialog{transform:none}
+
+.modal-header{
+  padding:var(--modal-padding);
+  font-weight:700;
+  background:linear-gradient(90deg,#f3f4f6,#eef2ff);
+  color:#111827;
+}
+
+.modal-body{
+  padding:var(--modal-padding);
+  color:#111827;
+}
+
+.modal-footer{
+  padding:calc(var(--modal-padding) / 1.2);
+  display:flex;
+  gap:.5rem;
+  justify-content:flex-end;
+  background:#fafafa;
+}
+
+.modal-btn{
+  padding:.5rem .75rem;
+  border-radius:6px;
+  border:1px solid rgba(0,0,0,0.08);
+  cursor:pointer;
+  background:#fff;
+}
+
+.modal-btn.btn-primary{
+  background:linear-gradient(90deg,#10b981,#059669);
+  color:#fff;
+  border:none;
+}
+
+.modal-dialog.modal-error .modal-header{background:linear-gradient(90deg,#fee2e2,#fef2f2)}
+.modal-dialog.modal-success .modal-header{background:linear-gradient(90deg,#ecfccb,#bbf7d0)}
+.modal-dialog.modal-info .modal-header{background:linear-gradient(90deg,#bfdbfe,#93c5fd)}
+
+/* Estilo para avisos/duplicação - visual mais agradável e alinhado com identidade */
+.modal-dialog.modal-warning .modal-header{
+  background: linear-gradient(90deg,#fff7ed,#ffedd5);
+  color: #92400e;
+}
+.modal-dialog.modal-warning .modal-body{
+  color: #40312a;
+  font-weight:600;
+  line-height:1.4;
+}
+.modal-dialog.modal-warning .modal-body p{ margin:0; }
+.modal-dialog.modal-warning .modal-footer{ background:transparent; }
+.modal-dialog.modal-warning .modal-btn{
+  border-radius:8px;
+  padding:.6rem .9rem;
+}
+.modal-dialog.modal-warning .modal-btn.btn-primary{
+  background: linear-gradient(90deg,#ff8a00,#ffb86b);
+  color: #fff;
+  border:none;
+}

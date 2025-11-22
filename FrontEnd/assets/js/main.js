@@ -57,3 +57,25 @@ if (phoneInput) {
     e.target.value = formatted;
   });
 }
+
+// ===== FAQ accordion (index) =====
+document.querySelectorAll('.faq__question').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.closest('.faq__item');
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (item) {
+      if (expanded) {
+        item.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      } else {
+        // fechar outros
+        document.querySelectorAll('.faq__item.open').forEach(i => {
+          i.classList.remove('open');
+          const q = i.querySelector('.faq__question'); if (q) q.setAttribute('aria-expanded','false');
+        });
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    }
+  });
+});

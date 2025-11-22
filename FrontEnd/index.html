@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 
 <body>
@@ -21,8 +21,8 @@
           <li><a href="#impacto" class="nav__link">Impacto</a></li>
           <li><a href="#sobre" class="nav__link">Sobre</a></li>
           <li><a href="#como-funciona" class="nav__link">Como Funciona</a></li>
-          <li><a href="#contato" class="nav__link">Contato</a></li>
-          <li><a href="/login" class="nav__link login_btn">Login</a></li>
+          <li><a href="#duvida" class="nav__link">Dúvidas frequentes</a></li>
+          <li><a href="login.html" class="nav__link login_btn">Login</a></li>
         </ul>
       </nav>
       <button id="mobile_btn" aria-label="Abrir menu mobile" aria-controls="mobile_menu" aria-expanded="false">
@@ -35,9 +35,9 @@
         <li class="nav_item"><a href="#impacto">Impacto</a></li>
         <li class="nav_item"><a href="#sobre">Sobre</a></li>
         <li class="nav_item"><a href="#como-funciona">Como Funciona</a></li>
-        <li class="nav_item"><a href="#contato">Contato</a></li>
+        <li class="nav_item"><a href="#duvida">Dúvidas frequentes</a></li>
       </ul>
-      <a href="/login" class="btn btn--neon" style="margin-top:1rem;">Login</a>
+      <a href="login.html" class="btn btn--neon" style="margin-top:1rem;">Login</a>
     </nav>
   </header>
 
@@ -49,7 +49,7 @@
         </h1>
         <p class="hero__subtitle">Conectamos quem tem excedente de energia solar com comunidades carentes, criando uma rede solidária que ilumina vidas.</p>
         <div class="hero__actions">
-          <a href="/login" class="btn btn--neon">Doe Agora</a>
+          <a href="login.html" class="btn btn--neon">Doe Agora</a>
           <a href="ods.html" class="btn btn--outline-neon">ODS 7 - Saiba Mais</a>
         </div>
       </div>
@@ -136,31 +136,48 @@
         </div>
       </div>
     </section>
-
-    <section class="contact" id="contato">
+    <section class="contact" id="duvida">
       <div class="container">
-        <span class="section__label">Contato</span>
+        
+        <span class="section__label">Dúvidas frequentes</span>
         <h2 class="section__title">Faça parte da mudança</h2>
-        <p class="section__description">Junte-se a nós e ajude a iluminar vidas. Preencha o formulário abaixo para entrarmos em contato.</p>
-        <form class="contact__form" autocomplete="on" novalidate>
-          <div class="form__group">
-            <label for="name">Nome Completo</label>
-            <input type="text" id="name" name="name" placeholder="Seu nome" required autocomplete="name">
+        <p class="section__description">
+          Esclareça suas dúvidas e entre para essa iniciativa que transforma vidas.  
+          Veja abaixo as perguntas mais comuns e, se preferir, fale com a gente pelo formulário.
+        </p>
+
+        <!-- FAQ  -->
+        <div class="faq" style="max-width: 900px; margin: 3rem auto;">
+          <div class="faq__item">
+            <button class="faq__question" aria-expanded="false">
+              <span>❓ Como funciona a doação de energia?</span>
+              <i data-feather="chevron-down"></i>
+            </button>
+            <div class="faq__answer">
+              <p>A energia excedente do seu painel solar é convertida em créditos e repassada automaticamente às famílias cadastradas.</p>
+            </div>
           </div>
-          <div class="form__group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="seu@email.com" required autocomplete="email">
+
+          <div class="faq__item">
+            <button class="faq__question" aria-expanded="false">
+              <span>💰 Existem custos para o doador?</span>
+              <i data-feather="chevron-down"></i>
+            </button>
+            <div class="faq__answer">
+              <p>Não! A operação é totalmente gratuita — você contribui apenas com o excedente que já teria naturalmente.</p>
+            </div>
           </div>
-          <div class="form__group">
-            <label for="phone">Telefone</label>
-            <input type="tel" id="phone" name="phone" placeholder="(XX ) XXXXX-XXXX" autocomplete="tel">
+
+          <div class="faq__item">
+            <button class="faq__question" aria-expanded="false">
+              <span>👨‍👩‍👧 Quem recebe a energia?</span>
+              <i data-feather="chevron-down"></i>
+            </button>
+            <div class="faq__answer">
+              <p>Famílias em situação de vulnerabilidade e comunidades cadastradas conforme critérios sociais e energéticos.</p>
+            </div>
           </div>
-          <div class="form__group">
-            <label for="message">Mensagem</label>
-            <textarea id="message" name="message" rows="4" placeholder="Como podemos ajudar?" required></textarea>
-          </div>
-          <button type="submit" class="btn btn--neon">Enviar Mensagem</button>
-        </form>
+        </div>
       </div>
     </section>
   </main>
@@ -170,8 +187,6 @@
       <p>© 2025 Energia Solidária - Todos os direitos reservados</p>
     </div>
   </footer>
-
-
   <script src="/assets/js/main.js"></script>
 </body>
 </html>
