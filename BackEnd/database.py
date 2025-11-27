@@ -16,7 +16,7 @@ class Database:
                 host="localhost",
                 database="energia_db",
                 user="postgres",
-                password="senha123", 
+                password="123senha", 
                 port="5432"
             )
             self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
