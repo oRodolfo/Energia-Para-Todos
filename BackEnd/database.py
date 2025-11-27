@@ -755,12 +755,13 @@ class Database:
         num_moradores: int
     ) -> int:
         """
-            Usa _set_autocommit_safe para evitar conflitos
+        Coloca beneficiário na fila com prioridade baseada APENAS na renda.
+        Quanto MENOR a renda, MAIOR a prioridade (fica mais perto do 1º lugar).
         """
         try:
-            print(f"entrar_na_fila chamado para id_beneficiario={id_beneficiario}")
+            print(f"🔵 entrar_na_fila: id_beneficiario={id_beneficiario}, renda={renda_familiar}")
             self._set_autocommit_safe(False)
-        
+    
             # Verifica se já está na fila AGUARDANDO
             query_existe = """
                 SELECT f.id_fila 
@@ -770,13 +771,12 @@ class Database:
                     AND sf.descricao_status_fila = 'AGUARDANDO'
             """
             existe = self.buscar_um(query_existe, (id_beneficiario,))
-        
+    
             if existe:
                 self.conn.rollback()
                 self._set_autocommit_safe(True)
-                print(f"Beneficiário já está na fila: id_fila={existe['id_fila']}")
                 raise ValueError("Beneficiário já está na fila de espera")
-        
+    
             # Busca ID do status AGUARDANDO
             query_status = """
                 SELECT id_status_fila FROM status_fila 
@@ -784,34 +784,33 @@ class Database:
             """
             status = self.buscar_um(query_status)
             id_status = status['id_status_fila'] if status else 1
+    
+            # CALCULA PRIORIDADE BASEADA 100% NA RENDA
+            # Fórmula simples: menor renda = maior prioridade
+            if renda_familiar > 0:
+                prioridade = int(10000 - renda_familiar)
+                # Garante que prioridade mínima seja 1000
+                prioridade = max(prioridade, 1000)
+            else:
+                prioridade = 1000
         
-            print(f"Status AGUARDANDO: id={id_status}")
-        
-            # Calcula prioridade 
-            query_prioridade = """
-                SELECT calcular_prioridade(%s, %s, %s, 0) AS prioridade
+            print(f"💰 Renda: R$ {renda_familiar:.2f} → Prioridade: {prioridade}")
+    
+            # Verifica se beneficiário existe
+            query_verifica = """
+                SELECT id_beneficiario 
+                FROM beneficiario 
+                WHERE id_beneficiario = %s 
+                FOR UPDATE
             """
-            result_prior = self.buscar_um(
-                query_prioridade,
-                (renda_familiar, consumo_medio_kwh, num_moradores)
-            )
-            prioridade = result_prior['prioridade']
-        
-            print(f"Prioridade calculada: {prioridade}")
-        
-            #Verifica se beneficiário existe com LOCK
-            query_verifica = "SELECT id_beneficiario FROM beneficiario WHERE id_beneficiario = %s FOR UPDATE"
             verifica = self.buscar_um(query_verifica, (id_beneficiario,))
-        
+    
             if not verifica:
                 self.conn.rollback()
                 self._set_autocommit_safe(True)
-                print(f"ERRO CRÍTICO: Beneficiário {id_beneficiario} não existe!")
                 raise ValueError(f"Beneficiário {id_beneficiario} não encontrado")
-        
-            print(f"Beneficiário {id_beneficiario} confirmado no banco")
-        
-            # Insere na fila
+    
+            # Inserindo na fila
             query = """
                 INSERT INTO fila_espera (
                     id_beneficiario,
@@ -830,35 +829,39 @@ class Database:
                 query,
                 (id_beneficiario, prioridade, id_status, renda_familiar, consumo_medio_kwh, num_moradores)
             )
-        
+    
             resultado = self.cursor.fetchone()
             if not resultado:
                 self.conn.rollback()
                 self._set_autocommit_safe(True)
                 raise Exception("Falha ao inserir na fila")
-        
+    
             id_fila = resultado['id_fila']
             self.conn.commit()
-        
-            print(f"Inserido na fila com sucesso: id_fila={id_fila}")
-        
-            # Verifica APÓS commit
+    
+            print(f"✅ Inserido na fila: id_fila={id_fila}, prioridade={prioridade}")
+    
+            # Montrando posição na fila
             self._set_autocommit_safe(True)
-            verifica_pos = self.buscar_um("SELECT id_beneficiario FROM beneficiario WHERE id_beneficiario = %s", (id_beneficiario,))
-            if not verifica_pos:
-                print(f"ALERTA: Beneficiário {id_beneficiario} desapareceu após commit!")
-            else:
-                print(f"Beneficiário {id_beneficiario} ainda existe após inserção")
-        
+            query_posicao = """
+                SELECT COUNT(*) + 1 AS posicao
+                FROM fila_espera f2
+                JOIN status_fila sf2 ON f2.id_status_fila = sf2.id_status_fila
+                WHERE sf2.descricao_status_fila = 'AGUARDANDO'
+                    AND f2.prioridade > %s
+            """
+            posicao_result = self.buscar_um(query_posicao, (prioridade,))
+            posicao = posicao_result['posicao'] if posicao_result else 1
+            print(f"📍 Posição na fila: {posicao}º lugar")
+    
             return id_fila
-        
+    
         except ValueError as ve:
             self.conn.rollback()
             self._set_autocommit_safe(True)
-            print(f"ValueError: {ve}")
             raise
         except Exception as e:
-            print(f"ERRO em entrar_na_fila: {e}")
+            print(f"❌ ERRO em entrar_na_fila: {e}")
             import traceback
             traceback.print_exc()
             self.conn.rollback()
