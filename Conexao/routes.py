@@ -365,14 +365,13 @@ class Routes:
             """
             historico = self.db.buscar_todos(query_historico, (id_beneficiario,))
     
-            #Total recebido APENAS de transações CONCLUÍDAS
+            #Total recebido APENAS de solicitações ATENDIDAS na fila
             query_total = """
-                SELECT COALESCE(SUM(t.quantidade_kwh), 0) AS total_recebido
-                FROM transacao t
-                JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao
-                WHERE t.id_beneficiario = %s
-                    AND st.descricao_status = 'CONCLUIDA'
-                    AND t.id_credito IS NOT NULL
+                SELECT COALESCE(SUM(f.consumo_medio_kwh), 0) AS total_recebido
+                FROM fila_espera f
+                JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
+                WHERE f.id_beneficiario = %s
+                    AND sf.descricao_status_fila = 'ATENDIDO'
             """
             result_total = self.db.buscar_um(query_total, (id_beneficiario,))
             total_recebido = float(result_total['total_recebido']) if result_total else 0
@@ -396,17 +395,17 @@ class Routes:
     def criar_solicitacao_beneficiario(self, dados):
         try:
             id_beneficiario = self.sessao.get('id_beneficiario')
-            
+        
             print(f"🔵 criar_solicitacao: id_beneficiario={id_beneficiario}")
-            
+        
             if not id_beneficiario:
                 return {'sucesso': False, 'mensagem': 'Beneficiário não encontrado na sessão'}
-            
+        
             quantidade_solicitada = float(dados.get('quantidade_kwh', 0))
-            
+        
             if quantidade_solicitada <= 0:
                 return {'sucesso': False, 'mensagem': 'Quantidade inválida'}
-            
+        
             # Busca dados do beneficiário
             query_benef = """
                 SELECT b.num_moradores, rb.valor_renda, cb.media_kwh
@@ -416,55 +415,83 @@ class Routes:
                 WHERE b.id_beneficiario = %s
             """
             benef_dados = self.db.buscar_um(query_benef, (id_beneficiario,))
-            
+        
             if not benef_dados:
                 return {'sucesso': False, 'mensagem': 'Dados do beneficiário não encontrados'}
-            
+        
             consumo_medio = float(benef_dados['media_kwh'] or 0)
-            
-            # Validação
-            if consumo_medio > 0 and quantidade_solicitada > consumo_medio:
+        
+            # ✅ NOVA LÓGICA: Calcula total já solicitado no mês atual
+            query_total_mes = """
+                SELECT COALESCE(SUM(f.consumo_medio_kwh), 0) as total_solicitado_mes
+                FROM fila_espera f
+                JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
+                WHERE f.id_beneficiario = %s
+                    AND EXTRACT(MONTH FROM f.data_entrada) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    AND EXTRACT(YEAR FROM f.data_entrada) = EXTRACT(YEAR FROM CURRENT_DATE)
+                    AND sf.descricao_status_fila IN ('AGUARDANDO', 'ATENDIDO')
+                """
+            result_mes = self.db.buscar_um(query_total_mes, (id_beneficiario,))
+            total_ja_solicitado = float(result_mes['total_solicitado_mes']) if result_mes else 0
+        
+            # ✅ Calcula quanto ainda pode solicitar
+            disponivel_para_solicitar = consumo_medio - total_ja_solicitado
+        
+            print(f"📊 Consumo médio: {consumo_medio} kWh")
+            print(f"📊 Já solicitado este mês: {total_ja_solicitado} kWh")
+            print(f"📊 Disponível para solicitar: {disponivel_para_solicitar} kWh")
+            print(f"📊 Quantidade solicitada agora: {quantidade_solicitada} kWh")
+        
+            # ✅ VALIDAÇÃO 1: Verifica se já atingiu o limite mensal
+            if disponivel_para_solicitar <= 0:
                 return {
                     'sucesso': False,
-                    'mensagem': f'Você só pode solicitar até {consumo_medio} kWh (seu consumo médio mensal)'
+                    'mensagem': f'Você já solicitou todo seu consumo médio mensal ({consumo_medio} kWh). Aguarde o próximo mês para novas solicitações.'
                 }
-            
-            #Verifica se já está na fila
+        
+            # ✅ VALIDAÇÃO 2: Verifica se nova solicitação ultrapassa limite disponível
+            if quantidade_solicitada > disponivel_para_solicitar:
+                return {
+                    'sucesso': False,
+                    'mensagem': f'Você só pode solicitar até {disponivel_para_solicitar:.2f} kWh. Já solicitou {total_ja_solicitado:.2f} kWh dos seus {consumo_medio} kWh mensais.'
+                }
+        
+            # ✅ VALIDAÇÃO 3: Verifica se já está na fila AGUARDANDO (não permite duplicatas)
             query_fila_existe = """
                 SELECT f.id_fila 
                 FROM fila_espera f
                 JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
                 WHERE f.id_beneficiario = %s 
-                  AND sf.descricao_status_fila = 'AGUARDANDO'
-            """
+                    AND sf.descricao_status_fila = 'AGUARDANDO'
+                """
             fila_existe = self.db.buscar_um(query_fila_existe, (id_beneficiario,))
-            
+        
             if fila_existe:
                 return {
                     'sucesso': False,
-                    'mensagem': 'Você já possui uma solicitação aguardando.'
+                    'mensagem': 'Você já possui uma solicitação aguardando. Aguarde o atendimento ou cancele a anterior.'
                 }
-            
-            #Insere na fila
+        
+            # ✅ Insere na fila
             self.db.entrar_na_fila(
                 id_beneficiario=id_beneficiario,
                 renda_familiar=float(benef_dados['valor_renda'] or 0),
                 consumo_medio_kwh=quantidade_solicitada,
                 num_moradores=int(benef_dados['num_moradores'] or 1)
             )
-            
+        
             mensagem = f'Solicitação de {quantidade_solicitada} kWh registrada! Você entrou na fila.'
-            
-            #Tenta distribuição
+        
+            # ✅ Tenta distribuição
             try:
                 resultado_dist = self.db.executar_distribuicao(limite=10)
                 if resultado_dist.get('beneficiarios_atendidos', 0) > 0:
                     mensagem += f" {resultado_dist['beneficiarios_atendidos']} beneficiário(s) atendido(s)!"
             except Exception as e:
                 print(f"Distribuição falhou: {e}")
-            
+        
             return {'sucesso': True, 'mensagem': mensagem}
-            
+        
         except Exception as e:
             print(f"ERRO CRIAR SOLICITACAO: {e}")
             import traceback

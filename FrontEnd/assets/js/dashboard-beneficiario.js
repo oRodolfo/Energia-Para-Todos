@@ -166,15 +166,15 @@ function configurarModal() {
     const kwh = parseFloat(inputKwh.value);
     const max = parseFloat(inputKwh.getAttribute('max')) || Infinity;
 
-    // ✅ Validação de quantidade
+    //Validação de quantidade
     if (!kwh || kwh <= 0 || isNaN(kwh)) {
       mostrarAlerta('Informe uma quantidade válida.', 'warning');
       return;
     }
 
-    // ✅ Validação de limite
+    //Validação de limite (o servidor agora faz validação mais robusta)
     if (max > 0 && kwh > max) {
-      mostrarAlerta(`Você só pode solicitar até ${max} kWh (seu consumo médio)`, 'warning');
+      mostrarAlerta(`Você só pode solicitar até ${max} kWh (seu consumo médio mensal)`, 'warning');
       return;
     }
 
@@ -192,6 +192,7 @@ function configurarModal() {
         modal.style.display = 'none';
         await carregarDados();
       } else {
+        // ✅ Mensagem de erro mais informativa do servidor
         mostrarAlerta('❌ ' + (data.mensagem || 'Erro ao solicitar'), 'error');
       }
     } catch (err) {
