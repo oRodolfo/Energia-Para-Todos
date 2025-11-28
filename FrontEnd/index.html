@@ -9,6 +9,89 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    @keyframes slideInRight {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Card de Dashboard Logado */
+    .card-dashboard-logado {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: linear-gradient(135deg, #ff9500, #ffd34d);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(255, 149, 0, 0.4);
+      max-width: 300px;
+      animation: slideInRight 0.5s ease-out;
+    }
+
+    .card-dashboard__titulo {
+      color: #211c29;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+
+    .card-dashboard__nome {
+      color: #211c29;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+    }
+
+    .card-dashboard__botao {
+      width: 100%;
+      padding: 12px 16px;
+      background: #211c29;
+      color: #ff9500;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 0.95rem;
+    }
+
+    .card-dashboard__botao:hover {
+      transform: scale(1.05);
+    }
+
+    .card-dashboard__botao:active {
+      transform: scale(1);
+    }
+
+    /* Responsivo */
+    @media (max-width: 480px) {
+      .card-dashboard-logado {
+        top: 10px;
+        right: 10px;
+        max-width: calc(100% - 20px);
+        padding: 16px;
+      }
+
+      .card-dashboard__titulo {
+        font-size: 1rem;
+      }
+
+      .card-dashboard__nome {
+        font-size: 0.9rem;
+      }
+
+      .card-dashboard__botao {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -42,6 +125,15 @@
   </header>
 
   <main>
+    <!-- Card de Bem-vindo para Usuário Logado -->
+    <div id="card-dashboard-logado" class="card-dashboard-logado" style="display: none;">
+      <div class="card-dashboard__titulo">👋 Bem-vindo de volta!</div>
+      <div id="nome-usuario-card" class="card-dashboard__nome"></div>
+      <button id="btn-acessar-dashboard" class="card-dashboard__botao">
+        Acessar seu Dashboard
+      </button>
+    </div>
+
     <section class="hero" id="inicio">
       <div class="container hero__content">
         <h1 class="hero__title">
@@ -136,9 +228,9 @@
         </div>
       </div>
     </section>
+
     <section class="contact" id="duvida">
       <div class="container">
-        
         <span class="section__label">Dúvidas frequentes</span>
         <h2 class="section__title">Faça parte da mudança</h2>
         <p class="section__description">
@@ -187,6 +279,47 @@
       <p>© 2025 Energia Solidária - Todos os direitos reservados</p>
     </div>
   </footer>
+
+  <!-- SCRIPT PARA DETECÇÃO DE USUÁRIO LOGADO -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await verificarUsuarioLogado();
+    });
+
+    async function verificarUsuarioLogado() {
+      try {
+        const resp = await fetch('/api/meu-perfil');
+        const data = await resp.json();
+
+        if (data.sucesso && data.usuario_id) {
+          // Usuário está logado - mostrar card
+          const cardDashboard = document.getElementById('card-dashboard-logado');
+          const nomeUsuarioCard = document.getElementById('nome-usuario-card');
+          const btnAcessarDashboard = document.getElementById('btn-acessar-dashboard');
+
+          if (cardDashboard && nomeUsuarioCard && btnAcessarDashboard) {
+            nomeUsuarioCard.textContent = `Olá, ${data.nome}!`;
+            cardDashboard.style.display = 'block';
+
+            // Configurar clique do botão para ir ao dashboard apropriado
+            btnAcessarDashboard.addEventListener('click', () => {
+              if (data.tipo === 'BENEFICIARIO') {
+                window.location.href = '/painel-beneficiario';
+              } else if (data.tipo === 'DOADOR') {
+                window.location.href = '/painel-doador';
+              } else {
+                // Fallback para página padrão
+                window.location.href = '/';
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.log('Usuário não logado - página inicial normal');
+      }
+    }
+  </script>
+
   <script src="/assets/js/main.js"></script>
 </body>
 </html>

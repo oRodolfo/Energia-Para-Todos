@@ -1066,3 +1066,71 @@ class Routes:
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
+        
+    def atualizar_beneficiario(self, dados):
+        """
+        Atualiza dados do beneficiário (renda e moradores).
+    
+        Parâmetros:
+        - dados: dict com 'renda_familiar' e 'num_moradores'
+    
+        Retorna:
+        - dict com sucesso True/False
+        """
+        try:
+            usuario_id = self.sessao.get('usuario_id')
+            id_beneficiario = self.sessao.get('id_beneficiario')
+        
+            if not usuario_id or not id_beneficiario:
+                return {'sucesso': False, 'mensagem': 'Usuário não autenticado'}
+        
+            renda_familiar = float(dados.get('renda_familiar', 0))
+            num_moradores = int(dados.get('num_moradores', 1))
+        
+            if num_moradores < 1:
+                return {'sucesso': False, 'mensagem': 'Quantidade de moradores deve ser maior que 0'}
+        
+            # Busca ID da renda atual
+            query_renda = "SELECT id_renda FROM beneficiario WHERE id_beneficiario = %s"
+            result = self.db.buscar_um(query_renda, (id_beneficiario,))
+        
+            if not result:
+                return {'sucesso': False, 'mensagem': 'Beneficiário não encontrado'}
+        
+            id_renda = result.get('id_renda')
+        
+            # Atualizar ou criar renda
+            if id_renda:
+                self.db.executar(
+                    "UPDATE renda_beneficiario SET valor_renda = %s WHERE id_renda = %s",
+                    (renda_familiar, id_renda)
+                )
+            else:
+                cursor_renda = self.db.executar(
+                    "INSERT INTO renda_beneficiario (valor_renda, periodo) VALUES (%s, 'MENSAL') RETURNING id_renda",
+                    (renda_familiar,)
+                )
+                id_renda = cursor_renda.fetchone()['id_renda']
+        
+            # Atualizar beneficiário
+            self.db.executar(
+                "UPDATE beneficiario SET num_moradores = %s, id_renda = %s WHERE id_beneficiario = %s",
+                (num_moradores, id_renda, id_beneficiario)
+            )
+        
+            self.db.registrar_log_auditoria(
+                id_usuario=usuario_id,
+                tipo_acao='EDITAR_PERFIL',
+                detalhes=f'Atualização de dados - renda: {renda_familiar}, moradores: {num_moradores}'
+            )
+        
+            return {
+                'sucesso': True,
+                'mensagem': 'Dados do beneficiário atualizados com sucesso'
+            }
+    
+        except Exception as e:
+            print(f"ERRO atualizar_beneficiario: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'sucesso': False, 'mensagem': str(e)}

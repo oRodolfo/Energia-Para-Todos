@@ -79,3 +79,17 @@ document.querySelectorAll('.faq__question').forEach(btn => {
     }
   });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Pega o elemento do botão de login pelo ID
+    const botaoLogin = document.getElementById('login-button-container');
+    
+    // 2. Verifica se o usuário está logado (baseado no Local Storage)
+    const estaLogado = localStorage.getItem('usuarioLogado') === 'true';
+
+    // 3. Se estiver logado, esconde o botão
+    if (estaLogado && botaoLogin) {
+        // Usa 'display: none' para remover o elemento e o espaço que ele ocupa
+        botaoLogin.style.display = 'none'; 
+    }
+});

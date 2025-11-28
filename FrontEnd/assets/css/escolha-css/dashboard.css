@@ -1509,3 +1509,223 @@ tbody tr:hover {
     gap: 6px;
   }
 }
+
+/* ============================================
+   NAVBAR DE NAVEGAÇÃO
+   ============================================ */
+
+.dashboard-navbar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+  border-bottom: 2px solid rgba(255, 149, 0, 0.2);
+}
+
+.btn-navbar {
+  padding: 0.9rem 1.8rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 2px solid var(--accent-bg);
+  background: rgba(33, 28, 41, 0.8);
+  color: var(--accent-light);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-navbar:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 149, 0, 0.3);
+}
+
+.btn-navbar i {
+  font-size: 1.1rem;
+}
+
+.btn-navbar-logout {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  margin-left: auto;
+}
+
+.btn-navbar-logout:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* ============================================
+   PÁGINA DE EDIÇÃO DE PERFIL
+   ============================================ */
+
+.perfil-container {
+  max-width: 700px;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+}
+
+.perfil-card {
+  background: var(--card-bg);
+  border-radius: 24px;
+  box-shadow: var(--card-shadow);
+  padding: 2.5rem;
+  border: var(--border-card);
+}
+
+.perfil-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+.perfil-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-shadow: 0 0 12px var(--accent-bg);
+}
+
+.perfil-header h1 i {
+  font-size: 2.2rem;
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.perfil-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.form-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-label i {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  border: 2px solid var(--accent-bg);
+  background: #181621;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(255, 149, 0, 0.3);
+}
+
+.form-input::placeholder {
+  color: rgba(209, 207, 195, 0.5);
+}
+
+.form-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  margin: 1rem 0;
+}
+
+.perfil-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-perfil {
+  flex: 1;
+  padding: 1.1rem;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.btn-perfil-salvar {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  color: #211c29;
+  box-shadow: var(--neon-shadow);
+}
+
+.btn-perfil-salvar:hover {
+  box-shadow: 0 0 62px var(--accent);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.btn-perfil-cancelar {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 2px solid rgba(148, 163, 184, 0.3);
+}
+
+.btn-perfil-cancelar:hover {
+  background: rgba(148, 163, 184, 0.25);
+  border-color: #94a3b8;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .dashboard-navbar {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .btn-navbar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-navbar-logout {
+    margin-left: 0;
+  }
+
+  .perfil-container {
+    padding: 0 1rem;
+  }
+
+  .perfil-card {
+    padding: 1.5rem;
+  }
+
+  .perfil-actions {
+    flex-direction: column;
+  }
+}

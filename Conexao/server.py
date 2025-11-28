@@ -302,7 +302,19 @@ class SimpleHandler(BaseHTTPRequestHandler):
                         'sucesso': False,
                         'mensagem': f'Erro ao excluir: {str(e)}'
                     })
-
+            
+            # BENEFICIÁRIO - atualizar dados
+            if path == '/api/beneficiario/atualizar':
+                self.carregar_sessao_em_routes()
+                if not self.routes.sessao.get('usuario_id'):
+                    return self.enviar_json({
+                        'sucesso': False,
+                        'mensagem': 'Usuário não autenticado'
+                    }, status=401)
+                
+                resultado = self.routes.atualizar_beneficiario(dados)
+                return self.enviar_json(resultado)
+            
             # LOGOUT
             if path == '/api/logout':
                 sid = obter_session_id_from_headers(self.headers)
@@ -374,6 +386,15 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     '/painel-doador': 'dashboard-doador.html'
                 }
                 return self.servir_html(paginas[self.path])
+            
+            if self.path == '/editar-perfil-doador':
+                self.carregar_sessao_em_routes()
+                if not self.routes.sessao.get('usuario_id'):
+                    self.send_response(302)
+                    self.send_header('Location', '/login')
+                    self.end_headers()
+                    return
+                return self.servir_html('editar-perfil-doador.html')
 
             # APIs
             if self.path == '/api/meu-perfil':
