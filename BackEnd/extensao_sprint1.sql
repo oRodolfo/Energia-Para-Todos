@@ -94,10 +94,10 @@ SELECT
     LEFT(cu.senha_hash, 20) || '...' AS senha_hash_preview,
     LENGTH(cu.senha_hash) AS tamanho_hash,
     LEFT(cu.senha_salt, 20) || '...' AS senha_salt_preview,
-    CASE 
-        WHEN cu.senha_hash LIKE '$2%' THEN '✅ Bcrypt Ativo'
-        ELSE '⚠️ Não Bcrypt'
-    END AS status_criptografia
+   CASE 
+    WHEN cu.senha_hash LIKE '$2%' THEN 'BCRYPT_ATIVO'
+    ELSE 'NAO_BCRYPT'
+END AS status_criptografia
 FROM usuario u
 JOIN credencial_usuario cu ON u.id_credencial = cu.id_credencial
 ORDER BY u.id_usuario DESC;
@@ -189,7 +189,6 @@ ORDER BY posicao;
 
 -- ============================================
 -- CORREÇÃO SIMPLIFICADA DO TRIGGER DE DISTRIBUIÇÃO
--- Execute este script no PostgreSQL
 -- ============================================
 
 -- 1. Remover constraint problemático
@@ -334,3 +333,10 @@ SELECT
   c.id_doador
 FROM credito c
 ORDER BY c.id_credito DESC;
+
+SELECT 
+    u.id_usuario,
+    u.email,
+    cu.senha_hash
+FROM usuario u
+JOIN credencial_usuario cu ON u.id_credencial = cu.id_credencial;

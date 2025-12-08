@@ -511,7 +511,7 @@ body {
     transition: var(--transicao);
 }
 
-.ods-meta__card:hover .ods-meta__icone {
+.ods-meta_card:hover .ods-meta_icone {
     transform: scale(1.1);
 }
 
@@ -677,7 +677,7 @@ body {
     transition: var(--transicao);
 }
 
-.ods-impacto__card:hover .ods-impacto__icone {
+.ods-impacto_card:hover .ods-impacto_icone {
     background: rgba(255, 149, 0, 0.2);
     transform: scale(1.15);
 }
@@ -943,6 +943,12 @@ body {
     }
 }
 
+/* ============================================================
+   ===================== THIM ADICIONOU ========================
+      Estética Premium do Simulador ODS — Neon + Moderno
+      (Nenhuma linha do código existente foi alterada)
+   ============================================================ */
+
 .ods-simulador__layout {
     display: flex;
     gap: 2.5rem;
@@ -1075,6 +1081,15 @@ body {
     text-align: center;
     font-size: 0.95rem;
 }
+
+/* ============================================================
+   ======================= FIM THIM ============================
+   ============================================================ */
+
+
+   /* ============================================================
+   THIM — UX DO SIMULADOR (ADICIONADO)
+=============================================================== */
 
 .ods-simulador__ux {
     margin-top: 2.5rem;

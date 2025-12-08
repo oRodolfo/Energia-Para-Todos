@@ -63,22 +63,24 @@
       box-shadow: 0 0 15px rgba(231, 76, 60, 0.3);
     }
 
-    /* Modal de edição */
+    /* Modal de edição - ESTILO COMPLETO */
     .modal-overlay {
       position: fixed;
       left: 0;
       top: 0;
       right: 0;
       bottom: 0;
-      background: rgba(18, 23, 64, 0.28);
+      background: rgba(0, 0, 0, 0.6);
       z-index: 1000;
       display: none;
       align-items: center;
       justify-content: center;
-      animation: fadeIn 0.33s;
+      animation: fadeIn 0.3s;
+      backdrop-filter: blur(4px);
     }
 
-    .modal-overlay.show {
+    .modal-overlay.show,
+    .modal-overlay.active {
       display: flex;
     }
 
@@ -87,6 +89,171 @@
       to { opacity: 1; }
     }
 
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Modal Content - Estrutura do doador */
+    .modal-content {
+      background: #1e1e1e;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+
+    .modal-icon.info {
+      background: rgba(52, 152, 219, 0.15);
+      color: #3498db;
+      border: 1px solid rgba(52, 152, 219, 0.3);
+    }
+
+    .modal-header-text h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #f5f5f5;
+      margin-bottom: 0.3rem;
+    }
+
+    .modal-header-text small {
+      color: #b0b0b0;
+      font-size: 0.85rem;
+    }
+
+    .modal-body {
+      margin-bottom: 1.5rem;
+      color: #b0b0b0;
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+
+    /* Input Groups */
+    .modal-input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-input-group label {
+      display: block;
+      color: #f5f5f5;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 2px solid rgba(255, 149, 0, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #f5f5f5;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: #ff9500;
+      box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2);
+    }
+
+    .modal-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Checkbox para senha */
+    #alterar-senha-toggle {
+      width: auto;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    /* Campos de senha escondidos por padrão */
+    #senha-fields {
+      margin-top: 10px;
+    }
+
+    #senha-fields input {
+      margin-bottom: 8px;
+    }
+
+    #senha-fields input:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Modal Footer */
+    .modal-footer {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+    }
+
+    .modal-btn-primary,
+    .modal-btn-secondary {
+      padding: 0.8rem 1.6rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .modal-btn-primary {
+      background: linear-gradient(135deg, #ff9500, #ffb84d);
+      color: #000;
+    }
+
+    .modal-btn-primary:hover {
+      box-shadow: 0 8px 20px rgba(255, 149, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .modal-btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #b0b0b0;
+    }
+
+    .modal-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* MANTÉM ESTILOS DO MODAL ANTIGO PARA SOLICITAÇÃO */
     .modal {
       background: #211c29;
       border-radius: 32px;
@@ -96,13 +263,6 @@
       max-width: 97vw;
       position: relative;
       border: 2.5px solid #ffb84d;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 0.9rem;
     }
 
     .modal-title {
@@ -129,10 +289,6 @@
       color: #ff9500;
     }
 
-    .modal-body {
-      margin-bottom: 1.2rem;
-    }
-
     .form-group {
       margin-bottom: 16px;
     }
@@ -144,30 +300,6 @@
       margin-bottom: 0.3rem;
       display: block;
       letter-spacing: 0.01em;
-    }
-
-    .modal-input {
-      width: 100%;
-      padding: 1.08rem 1.12rem;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 184, 77, 0.2);
-      font-size: 1.12rem;
-      background: #181621;
-      color: #ffd34d;
-      font-weight: 700;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      box-sizing: border-box;
-    }
-
-    .modal-input:focus {
-      border-color: #ff9500;
-      outline: none;
-      box-shadow: 0 0 12px rgba(255, 184, 77, 0.3);
-    }
-
-    .modal-footer {
-      margin-top: 1rem;
-      text-align: center;
     }
 
     .btn-salvar {
@@ -289,41 +421,54 @@
     </div>
   </div>
 
-  <!-- Modal Editar Perfil -->
-  <div class="modal-overlay" id="modal-editar-perfil">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Editar Perfil</span>
-        <button class="modal-close" id="btn-fechar-modal-editar">&times;</button>
+<!-- Modal Editar Perfil -->
+<div class="modal-overlay" id="modal-editar-perfil">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-icon info">
+        <i class="fas fa-user-edit"></i>
       </div>
-      <div class="modal-body">
-        <form id="form-editar-perfil">
-          <div class="form-group">
-            <label class="modal-label">Nome Completo</label>
-            <input type="text" id="input-nome" class="modal-input" placeholder="Seu nome completo" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="modal-label">Email</label>
-            <input type="email" id="input-email" class="modal-input" placeholder="seu@email.com" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="modal-label">Renda Mensal (R$)</label>
-            <input type="number" id="input-renda" class="modal-input" placeholder="0.00" step="0.01" min="0" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="modal-label">Quantidade de Moradores</label>
-            <input type="number" id="input-moradores" class="modal-input" placeholder="1" min="1" required>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-salvar" id="btn-salvar-perfil">Salvar Alterações</button>
+      <div class="modal-header-text">
+        <h2>Editar Perfil</h2>
+        <small>Atualize suas informações</small>
       </div>
     </div>
+    <div class="modal-body">
+      <form id="form-editar-perfil">
+        <div class="modal-input-group">
+          <label>Nome Completo</label>
+          <input type="text" id="input-nome" class="modal-input" placeholder="Seu nome completo" required>
+        </div>
+        
+        <div class="modal-input-group">
+          <label>Email</label>
+          <input type="email" id="input-email" class="modal-input" placeholder="seu@email.com" required>
+        </div>
+
+        <!-- CAMPO DE SENHA OPCIONAL (IGUAL AO DOADOR) -->
+        <div class="modal-input-group">
+          <label>Alterar senha (opcional)</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+            <input type="checkbox" id="alterar-senha-toggle" />
+            <small style="color:#ffd34d">Marque para alterar sua senha</small>
+          </div>
+          <div id="senha-fields" style="display:none">
+            <input type="password" id="senha-atual" class="modal-input" placeholder="Senha atual" style="margin-bottom:8px">
+            <input type="password" id="senha-nova" class="modal-input" placeholder="Nova senha (mínimo 6 caracteres)">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn-secondary" id="btn-fechar-modal-editar">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+      <button class="modal-btn-primary" id="btn-salvar-perfil">
+        <i class="fas fa-save"></i> Salvar Alterações
+      </button>
+    </div>
   </div>
+</div>
 
   <script src="/assets/js/dashboard-beneficiario.js"></script>
   <script>
@@ -370,22 +515,14 @@
     // CARREGAR DADOS PARA EDIÇÃO
     async function carregarDadosParaEdicao() {
       try {
-        const resp = await fetch('/api/meu-perfil');
+        const resp = await fetch('/api/meu-perfil', { credentials: 'include' });
         const data = await resp.json();
 
-        if (data.sucesso) {
-          document.getElementById('input-nome').value = data.nome || '';
-          document.getElementById('input-email').value = data.email || '';
-        }
-
-        // Buscar dados específicos do beneficiário
-        const respBenef = await fetch('/api/beneficiario/dados');
-        const dataBenef = await respBenef.json();
-
-        if (dataBenef.sucesso) {
-          const d = dataBenef.dados;
-          document.getElementById('input-renda').value = d.valor_renda || 0;
-          document.getElementById('input-moradores').value = d.num_moradores || 1;
+        if (data.sucesso && data.dados) {
+          document.getElementById('input-nome').value = data.dados.nome || '';
+          document.getElementById('input-email').value = data.dados.email || '';
+        } else {
+          mostrarAlerta(data.mensagem || 'Erro ao carregar dados', 'error');
         }
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
@@ -398,77 +535,116 @@
       const modal = document.getElementById('modal-editar-perfil');
       const btnFechar = document.getElementById('btn-fechar-modal-editar');
       const btnSalvar = document.getElementById('btn-salvar-perfil');
+      const toggleSenha = document.getElementById('alterar-senha-toggle');
 
-      if (btnFechar) {
-        btnFechar.addEventListener('click', () => {
-          modal.classList.remove('show');
+      // Toggle para mostrar/ocultar campos de senha
+      if (toggleSenha) {
+        toggleSenha.addEventListener('change', (e) => {
+          const camposSenha = document.getElementById('senha-fields');
+          camposSenha.style.display = e.target.checked ? 'block' : 'none';
         });
       }
 
-      if (btnSalvar) {
-        btnSalvar.addEventListener('click', salvarEdicaoPerfil);
-      }
-
-      // Fechar ao clicar fora
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          modal.classList.remove('show');
-        }
+    if (btnFechar) {
+      btnFechar.addEventListener('click', () => {
+        modal.classList.remove('show');
       });
     }
 
-    // SALVAR EDIÇÃO DE PERFIL
-    async function salvarEdicaoPerfil() {
-      try {
-        const nome = document.getElementById('input-nome').value.trim();
-        const email = document.getElementById('input-email').value.trim();
-        const renda = parseFloat(document.getElementById('input-renda').value);
-        const moradores = parseInt(document.getElementById('input-moradores').value);
+    if (btnSalvar) {
+      btnSalvar.addEventListener('click', salvarEdicaoPerfil);
+    }
 
-        // Validações simples
-        if (!nome || !email || renda < 0 || moradores < 1) {
-          mostrarAlerta('Por favor, preencha todos os campos obrigatórios corretamente', 'warning');
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('show');
+      }
+    });
+  }
+
+    // SALVAR EDIÇÃO DE PERFIL (BENEFICIÁRIO) - COM SENHA OPCIONAL
+  async function salvarEdicaoPerfil() {
+    try {
+      const nome = document.getElementById('input-nome').value.trim();
+      const email = document.getElementById('input-email').value.trim();
+      const toggle = document.getElementById('alterar-senha-toggle');
+      const alterarSenha = toggle ? toggle.checked : false;
+      const senhaAtual = alterarSenha ? (document.getElementById('senha-atual').value || '') : '';
+      const senhaNova = alterarSenha ? (document.getElementById('senha-nova').value || '') : '';
+
+      // VALIDAÇÕES
+      if (!nome || !email) {
+        mostrarAlerta('Por favor, preencha nome e email corretamente', 'warning');
+        return;
+      }
+
+      if (!email.includes('@')) {
+        mostrarAlerta('Email inválido', 'warning');
+        return;
+      }
+
+      // VALIDAÇÃO DE SENHA ANTES DE TUDO
+      if (alterarSenha) {
+        if (!senhaAtual || !senhaNova) {
+          mostrarAlerta('Preencha a senha atual e a nova senha.', 'warning');
           return;
         }
-
-        if (!email.includes('@')) {
-          mostrarAlerta('Email inválido', 'warning');
+        if (senhaNova.length < 8) {
+          mostrarAlerta('A nova senha deve ter no mínimo 8 caracteres.', 'warning');
           return;
         }
+      }
 
-        // Atualizar dados básicos do usuário
-        const respUsuario = await fetch('/api/meu-perfil');
-        const dataUsuario = await respUsuario.json();
+      // 1. ATUALIZA NOME E EMAIL
+      const respDados = await fetch('/usuario/atualizar-dados', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}`
+      });
 
-        if (dataUsuario.usuario_id) {
-          // Atualizar nome e email
-          await fetch('/usuario/atualizar-dados', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `id_usuario=${dataUsuario.usuario_id}&nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}`
-          });
-        }
+      const resultDados = await respDados.json();
+      if (!resultDados.sucesso) {
+        mostrarAlerta(resultDados.mensagem || 'Erro ao atualizar dados', 'error');
+        return;
+      }
 
-        // Atualizar dados do beneficiário (renda e moradores)
-        await fetch('/api/beneficiario/atualizar', {
+      // 2. ATUALIZA SENHA (SE SOLICITADO)
+      if (alterarSenha) {
+        const respSenha = await fetch('/usuario/alterar-senha', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `renda_familiar=${renda}&num_moradores=${moradores}`
+          body: `login=${encodeURIComponent(email)}&senha_atual=${encodeURIComponent(senhaAtual)}&senha_nova=${encodeURIComponent(senhaNova)}`
         });
 
-        mostrarAlerta('✓ Perfil atualizado com sucesso!', 'success');
-        document.getElementById('modal-editar-perfil').classList.remove('show');
-
-        // Recarregar dados após 1 segundo
-        setTimeout(() => {
-          carregarDados();
-        }, 1000);
-
-      } catch (err) {
-        console.error('Erro ao salvar perfil:', err);
-        mostrarAlerta('Erro ao salvar as alterações', 'error');
+        const resultSenha = await respSenha.json();
+        if (!resultSenha.sucesso) {
+          mostrarAlerta(resultSenha.mensagem || 'Erro ao alterar senha', 'error');
+          return;
+        }
       }
+
+      // 3. SUCESSO
+      mostrarAlerta('✔ Perfil atualizado com sucesso!', 'success');
+      document.getElementById('modal-editar-perfil').classList.remove('show');
+    
+      // Limpa campos de senha
+      if (toggle) {
+        toggle.checked = false;
+        document.getElementById('senha-fields').style.display = 'none';
+        document.getElementById('senha-atual').value = '';
+        document.getElementById('senha-nova').value = '';
+      }
+    
+      // Recarrega dados do dashboard
+      setTimeout(() => carregarDados(), 800);
+
+    } catch (err) {
+      console.error('Erro ao salvar perfil:', err);
+      mostrarAlerta('Erro ao salvar as alterações', 'error');
     }
+  }
 
     // REALIZAR LOGOUT
     async function realizarLogout() {

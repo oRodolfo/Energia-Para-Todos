@@ -297,29 +297,40 @@
   </div>
 
   <!-- Modal Editar Perfil -->
-  <div class="modal-overlay" id="modal-editar-perfil">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Editar Perfil</span>
-        <button class="modal-close" id="btn-fechar-modal-editar">&times;</button>
+ <div class="modal-overlay" id="modal-editar-perfil">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-icon info">
+        <i class="fas fa-user-edit"></i>
       </div>
-      <div class="modal-body">
-        <form id="form-editar-perfil">
-          <div class="form-group">
-            <label class="modal-label">Nome Completo</label>
-            <input type="text" id="input-nome" class="modal-input" placeholder="Seu nome completo" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="modal-label">Email</label>
-            <input type="email" id="input-email" class="modal-input" placeholder="seu@email.com" required>
-          </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-salvar" id="btn-salvar-perfil">Salvar Alterações</button>
+      <div class="modal-header-text">
+        <h2>Editar Perfil</h2>
+        <small>Atualize suas informações</small>
       </div>
     </div>
+    <div class="modal-body">
+      <form id="form-editar-perfil">
+        <div class="modal-input-group">
+          <label>Nome Completo</label>
+          <input type="text" id="input-nome" class="modal-input" placeholder="Seu nome completo" required>
+        </div>
+        
+        <div class="modal-input-group">
+          <label>Email</label>
+          <input type="email" id="input-email" class="modal-input" placeholder="seu@email.com" required>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn-secondary" id="btn-fechar-modal-editar">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+      <button class="modal-btn-primary" id="btn-salvar-perfil">
+        <i class="fas fa-save"></i> Salvar Alterações
+      </button>
+    </div>
   </div>
+</div>
   <script src="/assets/js/dashboard-doador.js"></script>
   <!-- O comportamento do dashboard (navegação, modal, ações) é gerenciado por /assets/js/dashboard-doador.js -->
 </body>

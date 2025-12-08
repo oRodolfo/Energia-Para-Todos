@@ -1729,3 +1729,222 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+
+/* Modal System Styles */
+:root {
+  --modal-success: #08c45a;
+  --modal-warning: #f1c40f;
+  --modal-danger: #e74c3c;
+  --modal-info: #3498db;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-content {
+  background: #1e1e1e;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.modal-icon.success {
+  background: rgba(8, 196, 90, 0.15);
+  color: var(--modal-success);
+  border: 1px solid rgba(8, 196, 90, 0.3);
+}
+
+.modal-icon.warning {
+  background: rgba(241, 196, 15, 0.15);
+  color: var(--modal-warning);
+  border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.modal-icon.danger {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--modal-danger);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.modal-icon.info {
+  background: rgba(52, 152, 219, 0.15);
+  color: var(--modal-info);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.modal-header-text h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #f5f5f5;
+  margin-bottom: 0.3rem;
+}
+
+.modal-header-text small {
+  color: #b0b0b0;
+  font-size: 0.85rem;
+}
+
+.modal-body {
+  margin-bottom: 1.5rem;
+  color: #b0b0b0;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.modal-input-group {
+  margin-bottom: 1.5rem;
+}
+
+.modal-input-group label {
+  display: block;
+  color: #f5f5f5;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.modal-input-group input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 2px solid rgba(255, 149, 0, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f5f5f5;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.modal-input-group input:focus {
+  outline: none;
+  border-color: #ff9500;
+  box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.modal-btn-primary,
+.modal-btn-secondary,
+.modal-btn-success,
+.modal-btn-danger {
+  padding: 0.8rem 1.6rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.modal-btn-primary {
+  background: linear-gradient(135deg, #ff9500, #ffb84d);
+  color: #000;
+}
+
+.modal-btn-primary:hover {
+  box-shadow: 0 8px 20px rgba(255, 149, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #b0b0b0;
+}
+
+.modal-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.modal-btn-success {
+  background: linear-gradient(135deg, #08c45a, #06a84d);
+  color: white;
+}
+
+.modal-btn-success:hover {
+  box-shadow: 0 8px 20px rgba(8, 196, 90, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-btn-danger {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.modal-btn-danger:hover {
+  box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 600px) {
+  .modal-content {
+    padding: 1.5rem;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer button {
+    flex: 1;
+  }
+}

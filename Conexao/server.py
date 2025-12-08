@@ -163,7 +163,10 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 if resultado.get('sucesso'):
                     sid = obter_session_id_from_headers(self.headers)
                     if sid and sid in SESSOES:
-                        SESSOES[sid].update({'id_beneficiario': Routes._sessao_global.get('id_beneficiario')})
+                        SESSOES[sid].update({
+                            'id_beneficiario': Routes._sessao_global.get('id_beneficiario'),
+                            'tipo': Routes._sessao_global.get('tipo')
+                        })
                 return self.enviar_json(resultado)
 
             # BENEFICIÁRIO - criar solicitação
@@ -176,13 +179,19 @@ class SimpleHandler(BaseHTTPRequestHandler):
             if path == '/api/beneficiario/solicitacao/editar':
                 self.carregar_sessao_em_routes()
                 resultado = self.routes.editar_solicitacao(dados)
-                return self.enviar_json(resultado)
+    
+                # RETORNA STATUS HTTP CORRETO (respeita 'http_status' se fornecido)
+                status_code = resultado.get('http_status', (200 if resultado.get('sucesso') else 400))
+                return self.enviar_json(resultado, status=status_code)
 
             # BENEFICIÁRIO - excluir solicitação
             if path == '/api/beneficiario/solicitacao/excluir':
                 self.carregar_sessao_em_routes()
                 resultado = self.routes.excluir_solicitacao(dados)
-                return self.enviar_json(resultado)
+    
+                # RETORNA STATUS HTTP CORRETO (respeita 'http_status' se fornecido)
+                status_code = resultado.get('http_status', (200 if resultado.get('sucesso') else 400))
+                return self.enviar_json(resultado, status=status_code)
 
             # DOADOR - criar doação
             if path in ['/api/doador/doacoes', '/api/doador/doar']:
@@ -213,31 +222,45 @@ class SimpleHandler(BaseHTTPRequestHandler):
             # CRUD DE USUÁRIOS
             # Atualizar dados do usuário
             if path == '/usuario/atualizar-dados':
+                self.carregar_sessao_em_routes()
                 try:
-                    id_usuario = int(dados.get('id_usuario', 0))
-                    nome = dados.get('nome', '').strip()
-                    email = dados.get('email', '').strip()
-                    
-                    if not all([id_usuario, nome, email]):
+                    usuario_id = self.routes.sessao.get('usuario_id')
+                    if not usuario_id:
                         return self.enviar_json({
                             'sucesso': False,
-                            'mensagem': 'Todos os campos são obrigatórios'
+                            'mensagem': 'Usuário não autenticado'
+                        }, status=401)
+        
+                    nome = dados.get('nome', '').strip()
+                    email = dados.get('email', '').strip()
+        
+                    if not all([nome, email]):
+                        return self.enviar_json({
+                            'sucesso': False,
+                            'mensagem': 'Nome e email são obrigatórios'
                         })
-                    
-                    resultado = self.routes.db.atualizar_usuario_dados(id_usuario, nome, email)
-                    
+        
+                    resultado = self.routes.db.atualizar_usuario_dados(usuario_id, nome, email)
+        
+                    # Atualiza sessão com novos dados
+                    Routes._sessao_global['nome'] = nome
+                    Routes._sessao_global['email'] = email
+                    sid = obter_session_id_from_headers(self.headers)
+                    if sid and sid in SESSOES:
+                        SESSOES[sid]['nome'] = nome
+                        SESSOES[sid]['email'] = email
+        
                     return self.enviar_json({
                         'sucesso': True,
-                        'mensagem': f'Usuário #{id_usuario} atualizado com sucesso!',
-                        'dados': resultado
+                        'mensagem': 'Perfil atualizado com sucesso!'
                     })
-                    
+        
                 except Exception as e:
-                    print(f"Erro ao atualizar usuário: {e}")
-                    return self.enviar_json({
-                        'sucesso': False,
-                        'mensagem': f'Erro ao atualizar: {str(e)}'
-                    })
+                        print(f"Erro ao atualizar usuário: {e}")
+                        return self.enviar_json({
+                            'sucesso': False,
+                            'mensagem': f'Erro ao atualizar: {str(e)}'
+                        })
             
             # Alterar senha
             if path == '/usuario/alterar-senha':
@@ -321,6 +344,30 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 if sid:
                     destruir_sessao(sid)
                 return self.enviar_json({'sucesso': True, 'redirect': '/login'})
+            
+            # RECUPERAÇÃO DE SENHA - Solicitar código
+            if path == '/api/recuperacao/solicitar':
+                resultado = self.routes.solicitar_recuperacao_senha(dados)
+                return self.enviar_json(resultado)
+
+            # RECUPERAÇÃO DE SENHA - Validar código
+            if path == '/api/recuperacao/validar':
+                resultado = self.routes.validar_codigo_recuperacao(dados)
+                return self.enviar_json(resultado)
+
+            # RECUPERAÇÃO DE SENHA - Resetar senha
+            if path == '/api/recuperacao/resetar':
+                resultado = self.routes.resetar_senha_com_codigo(dados)
+                return self.enviar_json(resultado)
+            
+            if path == '/api/admin/distribuir':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                limite = dados.get('limite', 10)
+                resultado = self.routes.executar_distribuicao_admin(limite)
+                return self.enviar_json(resultado)
 
             # Fallback
             self.enviar_404()
@@ -387,6 +434,23 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 }
                 return self.servir_html(paginas[self.path])
             
+            if self.path == '/crud':
+                self.carregar_sessao_em_routes()
+                if not self.routes.sessao.get('usuario_id'):
+                    self.send_response(302)
+                    self.send_header('Location', '/login')
+                    self.end_headers()
+                    return
+    
+                # Verifica se é administrador
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    self.send_response(302)
+                    self.send_header('Location', '/login')
+                    self.end_headers()
+                    return
+    
+                return self.servir_html('crud.html')
+
             if self.path == '/editar-perfil-doador':
                 self.carregar_sessao_em_routes()
                 if not self.routes.sessao.get('usuario_id'):
@@ -405,17 +469,76 @@ class SimpleHandler(BaseHTTPRequestHandler):
                         'mensagem': 'Usuário não autenticado',
                         'redirect': '/login'
                     }, status=401)
+    
+                # Chama método que retorna dados atualizados do banco
+                resultado = self.routes.obter_meu_perfil()
+                return self.enviar_json(resultado)
             
-                dados = {
-                    'sucesso': True,
-                    'usuario_id': self.routes.sessao.get('usuario_id'),
-                    'nome': self.routes.sessao.get('nome'),
-                    'email': self.routes.sessao.get('email'),
-                    'tipo': self.routes.sessao.get('tipo'),
-                    'id_doador': self.routes.sessao.get('id_doador'),
-                    'id_beneficiario': self.routes.sessao.get('id_beneficiario')
-                }
-                return self.enviar_json(dados)
+            if self.path == '/api/admin/metricas':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                resultado = self.routes.obter_metricas_admin()
+                return self.enviar_json(resultado)
+
+            # ADMIN: Lista de Beneficiários
+            if self.path == '/api/admin/beneficiarios':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                resultado = self.routes.listar_beneficiarios_admin()
+                return self.enviar_json(resultado)
+
+            # ADMIN: Lista de Doadores
+            if self.path == '/api/admin/doadores':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                resultado = self.routes.listar_doadores_admin()
+                return self.enviar_json(resultado)
+
+            # ADMIN: Lista de Créditos
+            if self.path == '/api/admin/creditos':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                resultado = self.routes.listar_creditos_admin()
+                return self.enviar_json(resultado)
+
+            # ADMIN: Fila de Espera
+            if self.path == '/api/admin/fila':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                resultado = self.routes.listar_fila_admin()
+                return self.enviar_json(resultado)
+
+            # ADMIN: Logs (com parâmetro limite)
+            if self.path.startswith('/api/admin/logs'):
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                from urllib.parse import parse_qs, urlparse
+                query_params = parse_qs(urlparse(self.path).query)
+                limite = int(query_params.get('limite', [50])[0])
+    
+                resultado = self.routes.listar_logs_admin(limite)
+                return self.enviar_json(resultado)
+
+            # ADMIN: Estatísticas do Sistema
+            if self.path == '/api/admin/estatisticas':
+                self.carregar_sessao_em_routes()
+                if self.routes.sessao.get('tipo') != 'ADMINISTRADOR':
+                    return self.enviar_json({'sucesso': False, 'mensagem': 'Acesso negado'}, status=403)
+    
+                resultado = self.routes.obter_estatisticas_sistema()
+                return self.enviar_json(resultado)
 
             # LISTAR USUÁRIOS (API)
             if self.path == '/api/usuarios':
@@ -443,6 +566,23 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     return self.enviar_json({'sucesso': False, 'mensagem': 'Permissão negada'}, status=403)
                 dados = self.routes.obter_dados_doador()
                 return self.enviar_json(dados)
+            
+            if self.path == '/recuperar-senha':
+                return self.servir_html('recuperar-senha.html')
+            
+            if self.path == '/api/estatisticas-gerais':
+                try:
+                    resultado = self.routes.estatisticas_gerais()
+                    return self.enviar_json({
+                        'sucesso': True,
+                        'dados': resultado
+                    })
+                except Exception as e:
+                    print(f"Erro ao buscar estatísticas gerais: {e}")
+                    return self.enviar_json({
+                        'sucesso': False,
+                        'mensagem': str(e)
+                    }, status=500)
 
             # 404 para rotas não encontradas
             self.enviar_404()

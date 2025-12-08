@@ -509,3 +509,107 @@ WHERE id_beneficiario = 14
 
 -- Verifica resultado
 SELECT * FROM beneficiario WHERE id_beneficiario = 14;
+
+-- ============================================
+-- SISTEMA DE PERMISSÕES - ENERGIA PARA TODOS
+-- Versão Atualizada (sem telefone)
+-- ============================================
+
+-- 1. Garantir que tipo ADMINISTRADOR existe
+INSERT INTO tipo_usuario (descricao_tipo) 
+VALUES ('ADMINISTRADOR')
+ON CONFLICT (descricao_tipo) DO NOTHING;
+
+-- 2. Criar usuário administrador padrão
+DO $$
+DECLARE
+    v_id_credencial INTEGER;
+    v_id_tipo INTEGER;
+    v_id_status INTEGER;
+    v_id_usuario INTEGER;
+BEGIN
+    -- Buscar IDs necessários
+    SELECT id_tipo INTO v_id_tipo 
+    FROM tipo_usuario 
+    WHERE descricao_tipo = 'ADMINISTRADOR';
+
+    SELECT id_status INTO v_id_status 
+    FROM status 
+    WHERE descricao_status = 'ATIVO';
+
+    IF v_id_status IS NULL THEN
+        RAISE EXCEPTION 'O status ATIVO não existe na tabela status.';
+    END IF;
+
+    -- Criar credencial (senha: admin123)
+    INSERT INTO credencial_usuario (login, senha_hash, senha_salt)
+    VALUES (
+        'admin@energiaparatodos.com',
+        crypt('admin123', gen_salt('bf')),
+        gen_salt('bf')
+    )
+    RETURNING id_credencial INTO v_id_credencial;
+
+    -- Criar usuário administrador (sem telefone)
+    INSERT INTO usuario (nome, email, id_tipo, id_status, cep, id_credencial)
+    VALUES (
+        'Administrador Sistema',
+        'admin@energiaparatodos.com',
+        v_id_tipo,
+        v_id_status,
+        '00000-000',
+        v_id_credencial
+    )
+    RETURNING id_usuario INTO v_id_usuario;
+
+    RAISE NOTICE '✅ Usuário administrador criado com sucesso!';
+    RAISE NOTICE '📧 Email: admin@energiaparatodos.com';
+    RAISE NOTICE '🔑 Senha: admin123';
+    RAISE NOTICE '🆔 ID: %', v_id_usuario;
+END $$;
+
+-- 3. Criar tabela de configurações do sistema
+CREATE TABLE IF NOT EXISTS configuracao_sistema (
+    id_config SERIAL PRIMARY KEY,
+    chave VARCHAR(100) UNIQUE NOT NULL,
+    valor TEXT,
+    descricao TEXT,
+    data_atualizacao TIMESTAMP DEFAULT NOW()
+);
+
+-- Inserir configurações iniciais
+INSERT INTO configuracao_sistema (chave, valor, descricao) VALUES
+    ('taxa_conversao_co2', '0.356', 'kg de CO2 por kWh evitado'),
+    ('dias_expiracao_credito', '365', 'Dias até crédito expirar'),
+    ('limite_solicitacao_mes', '1', 'Número máximo de solicitações por mês')
+ON CONFLICT (chave) DO NOTHING;
+
+-- 4. View para métricas do administrador
+CREATE OR REPLACE VIEW v_metricas_admin AS
+SELECT
+    -- Usuários
+    (SELECT COUNT(*) FROM usuario) AS total_usuarios,
+    (SELECT COUNT(*) FROM usuario u JOIN tipo_usuario tu ON u.id_tipo = tu.id_tipo WHERE tu.descricao_tipo = 'DOADOR') AS total_doadores,
+    (SELECT COUNT(*) FROM usuario u JOIN tipo_usuario tu ON u.id_tipo = tu.id_tipo WHERE tu.descricao_tipo = 'BENEFICIARIO') AS total_beneficiarios,
+
+    -- Créditos
+    (SELECT COALESCE(SUM(quantidade_disponivel_kwh), 0) FROM credito) AS creditos_disponiveis,
+    (SELECT COALESCE(SUM(t.quantidade_kwh), 0) FROM transacao t 
+        JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao 
+        WHERE st.descricao_status = 'CONCLUIDA') AS creditos_distribuidos,
+
+    -- Filas
+    (SELECT COUNT(*) FROM fila_espera f 
+        JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila 
+        WHERE sf.descricao_status_fila = 'AGUARDANDO') AS beneficiarios_na_fila,
+
+    -- Atividade
+    (SELECT COUNT(*) FROM log_auditoria WHERE data_hora >= NOW() - INTERVAL '24 hours') AS atividades_24h,
+    (SELECT COUNT(*) FROM log_auditoria WHERE data_hora >= NOW() - INTERVAL '7 days') AS atividades_7d;
+
+-- Adiciona coluna se não existir
+ALTER TABLE transacao 
+ADD COLUMN IF NOT EXISTS id_credito INTEGER REFERENCES credito(id_credito);
+
+-- Cria índice para performance
+CREATE INDEX IF NOT EXISTS idx_transacao_credito ON transacao(id_credito);

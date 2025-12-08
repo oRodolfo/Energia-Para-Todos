@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await carregarDadosDoador();
   configurarEventos();
   configurarModalEdicao();
-  configurarNavegacao(); // Nova função
+  configurarNavegacao();
 });
 
 // CARREGAR DADOS DO DOADOR
@@ -31,17 +31,13 @@ async function carregarDadosDoador() {
     }
     const dados = resultado.dados;
     
-    // Determina o nome de exibição
     let nomeExibicao = dados.nome;
-
     if (dados.classificacao === 'PESSOA_JURIDICA' && dados.razao_social) {
       nomeExibicao = dados.razao_social;
     }
     
-    // Atualiza o título
     document.querySelector('.dashboard-title').textContent = `Olá, ${nomeExibicao}`;
 
-    // Atualizar subtítulo com classificação
     const subtitulo = document.querySelector('.dashboard-subtitle');
     if (dados.cnpj) {
       subtitulo.textContent = `Pessoa Jurídica · CNPJ: ${formatarCNPJ(dados.cnpj)}`;
@@ -194,25 +190,43 @@ function renderizarHistoricoComFiltros(creditos) {
     const qtdInicial = parseFloat(credito.quantidade_inicial || 0);
     const qtdDisponivel = parseFloat(credito.quantidade_disponivel_kwh || 0);
     const qtdConsumida = parseFloat(credito.quantidade_consumida || 0);
-    const status = credito.descricao_status || 'DESCONHECIDO';
+    
+    // ✅ CALCULA STATUS REAL BASEADO NOS DADOS
+    let statusReal = '';
+    let statusClass = '';
+    let statusIcon = '';
+    
+    if (qtdConsumida === 0) {
+      // 🟢 DISPONÍVEL - Nada foi consumido ainda
+      statusReal = 'DISPONÍVEL';
+      statusClass = 'status-success';
+      statusIcon = '🟢';
+    } else if (qtdConsumida > 0 && qtdDisponivel > 0) {
+      // 🟠 PARCIALMENTE UTILIZADO - Foi consumido algo, mas ainda sobra
+      statusReal = 'PARCIALMENTE UTILIZADO';
+      statusClass = 'status-warning';
+      statusIcon = '🟠';
+    } else if (qtdDisponivel === 0) {
+      // 🔴 ESGOTADO - Nada mais disponível
+      statusReal = 'ESGOTADO';
+      statusClass = 'status-danger';
+      statusIcon = '🔴';
+    }
+    
     const dataExpiracao = credito.data_expiracao 
       ? new Date(credito.data_expiracao).toLocaleDateString('pt-BR')
       : 'Sem data';
 
+    // ✅ Doação pode ser editada/excluída apenas se NÃO foi consumida
     const podeEditar = qtdConsumida === 0;
-    
-    let statusClass = 'status-info';
-    if (status === 'DISPONIVEL') statusClass = 'status-success';
-    else if (status === 'ESGOTADO') statusClass = 'status-danger';
-    else if (status === 'PARCIALMENTE_UTILIZADO') statusClass = 'status-warning';
 
     html += `
       <tr>
         <td><span class="badge badge-primary">⚡ #${credito.id_credito}</span></td>
-        <td>${qtdInicial.toFixed(2)} kWh</td>
-        <td>${qtdDisponivel.toFixed(2)} kWh</td>
-        <td>${qtdConsumida.toFixed(2)} kWh</td>
-        <td><span class="badge ${statusClass}">${status}</span></td>
+        <td><strong>${qtdInicial.toFixed(2)} kWh</strong></td>
+        <td><span style="color: #22c55e; font-weight: 700;">${qtdDisponivel.toFixed(2)} kWh</span></td>
+        <td><span style="color: #ef4444; font-weight: 700;">${qtdConsumida.toFixed(2)} kWh</span></td>
+        <td><span class="badge ${statusClass}">${statusIcon} ${statusReal}</span></td>
         <td>📅 ${dataExpiracao}</td>
         <td class="td-acoes">
     `;
@@ -228,7 +242,7 @@ function renderizarHistoricoComFiltros(creditos) {
       `;
     } else {
       html += `
-        <span class="badge badge-info" title="Esta doação já foi distribuída e não pode ser alterada">
+        <span class="badge badge-info" title="Esta doação já foi distribuída (${qtdConsumida.toFixed(2)} kWh consumidos)">
           <i class="fas fa-lock"></i> Distribuída
         </span>
       `;
@@ -259,8 +273,21 @@ let creditosOriginais = [];
 
 function aplicarFiltros(creditos) {
   return creditos.filter(credito => {
+    // Calcula status real para filtrar
+    const qtdConsumida = parseFloat(credito.quantidade_consumida || 0);
+    const qtdDisponivel = parseFloat(credito.quantidade_disponivel_kwh || 0);
+    
+    let statusReal = '';
+    if (qtdConsumida === 0) {
+      statusReal = 'DISPONIVEL';
+    } else if (qtdConsumida > 0 && qtdDisponivel > 0) {
+      statusReal = 'PARCIALMENTE_UTILIZADO';
+    } else if (qtdDisponivel === 0) {
+      statusReal = 'ESGOTADO';
+    }
+    
     if (filtrosAtivos.status !== 'TODOS') {
-      if (credito.descricao_status !== filtrosAtivos.status) {
+      if (statusReal !== filtrosAtivos.status) {
         return false;
       }
     }
@@ -389,34 +416,28 @@ function configurarEventos() {
     }
   });
 
-  // NOVA FUNCIONALIDADE: Navegação
   configurarNavegacao();
 }
 
-// NOVA FUNÇÃO: CONFIGURAR NAVEGAÇÃO
 function configurarNavegacao() {
   const btnInicio = document.getElementById('btn-inicio');
   const btnEditar = document.getElementById('btn-editar');
   const btnLogout = document.getElementById('btn-logout');
 
-  // Botão Página Inicial
   btnInicio?.addEventListener('click', () => {
-    window.location.href = '/index.html';
+    window.location.href = '/';
   });
 
-  // Botão Editar Perfil
   btnEditar?.addEventListener('click', () => {
     const modal = document.getElementById('modal-editar-perfil');
     if (modal) {
       carregarDadosParaEdicao();
       modal.classList.add('show');
     } else {
-      // fallback
       window.location.href = '/editar-perfil-doador';
     }
   });
 
-  // Botão Logout
   btnLogout?.addEventListener('click', async () => {
     if (confirm('Deseja realmente sair do sistema?')) {
       try {
@@ -433,23 +454,18 @@ function configurarNavegacao() {
         
       } catch (erro) {
         console.error('Erro ao fazer logout:', erro);
-        // Mesmo com erro, redireciona para o login
         window.location.href = '/login';
       }
     }
   });
 }
 
-// --------------------------------------------------
-// Modal de edição / Perfil do Doador
-// --------------------------------------------------
 function configurarModalEdicao() {
   const modal = document.getElementById('modal-editar-perfil');
   const btnFechar = document.getElementById('btn-fechar-modal-editar');
   const btnSalvar = document.getElementById('btn-salvar-perfil');
   const form = document.getElementById('form-editar-perfil');
 
-  // Injeta opção para alterar senha (uma vez)
   if (form && !document.getElementById('alterar-senha-toggle')) {
     const container = document.createElement('div');
     container.className = 'form-group';
@@ -476,7 +492,6 @@ function configurarModalEdicao() {
     modal.classList.remove('show');
   });
 
-  // Salvar via submit para permitir Enter
   form?.addEventListener('submit', (ev) => {
     ev.preventDefault();
     salvarEdicaoPerfil();
@@ -487,7 +502,6 @@ function configurarModalEdicao() {
     salvarEdicaoPerfil();
   });
 
-  // Fechar ao clicar fora
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.classList.remove('show');
@@ -500,16 +514,12 @@ async function carregarDadosParaEdicao() {
     const resp = await fetch('/api/meu-perfil', { credentials: 'include' });
     const data = await resp.json();
 
-    if (data.sucesso) {
-      document.getElementById('input-nome').value = data.nome || '';
-      document.getElementById('input-email').value = data.email || '';
+    if (data.sucesso && data.dados) {
+      document.getElementById('input-nome').value = data.dados.nome || '';
+      document.getElementById('input-email').value = data.dados.email || '';
+    } else {
+      mostrarAlerta(data.mensagem || 'Erro ao carregar dados', 'error');
     }
-
-    // Preenche dados do doador se necessário
-    const respDoador = await fetch('/api/doador/dados', { credentials: 'include' });
-    const dataDoador = await respDoador.json();
-    // Pode-se preencher campos específicos do doador aqui no futuro
-
   } catch (err) {
     console.error('Erro ao carregar dados para edição:', err);
     mostrarAlerta('Erro ao carregar seus dados', 'error');
@@ -534,43 +544,61 @@ async function salvarEdicaoPerfil() {
       return;
     }
 
-    // Atualizar nome/email
-    const formBody = `nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}`;
-
-    await fetch('/usuario/atualizar-dados', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formBody
-    });
-
-    // Alterar senha opcional
+    // VALIDAÇÃO DE SENHA ANTES DE TUDO
     if (alterarSenha) {
-      if (!senhaAtual || !senhaNova || senhaNova.length < 6) {
-        mostrarAlerta('Preencha corretamente as senhas (nova mínimo 6 caracteres).', 'warning');
+      if (!senhaAtual || !senhaNova) {
+        mostrarAlerta('Preencha a senha atual e a nova senha.', 'warning');
         return;
       }
-
-      const senhaBody = `login=${encodeURIComponent(email)}&senha_atual=${encodeURIComponent(senhaAtual)}&senha_nova=${encodeURIComponent(senhaNova)}`;
-
-      const resp = await fetch('/usuario/alterar-senha', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: senhaBody
-      });
-
-      const resJson = await resp.json();
-      if (!resJson.sucesso) {
-        mostrarAlerta(resJson.mensagem || 'Erro ao alterar senha', 'error');
+      if (senhaNova.length < 8) {
+        mostrarAlerta('A nova senha deve ter no mínimo 8 caracteres.', 'warning');
         return;
       }
     }
 
-    mostrarAlerta('✓ Perfil atualizado com sucesso!', 'success');
-    document.getElementById('modal-editar-perfil').classList.remove('show');
+    // 1. ATUALIZA NOME E EMAIL
+    const respDados = await fetch('/usuario/atualizar-dados', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}`
+    });
 
-    // Recarregar dados no painel
+    const resultDados = await respDados.json();
+    if (!resultDados.sucesso) {
+      mostrarAlerta(resultDados.mensagem || 'Erro ao atualizar dados', 'error');
+      return;
+    }
+
+    // 2. ATUALIZA SENHA (SE SOLICITADO)
+    if (alterarSenha) {
+      const respSenha = await fetch('/usuario/alterar-senha', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `login=${encodeURIComponent(email)}&senha_atual=${encodeURIComponent(senhaAtual)}&senha_nova=${encodeURIComponent(senhaNova)}`
+      });
+
+      const resultSenha = await respSenha.json();
+      if (!resultSenha.sucesso) {
+        mostrarAlerta(resultSenha.mensagem || 'Erro ao alterar senha', 'error');
+        return;
+      }
+    }
+
+    // 3. SUCESSO
+    mostrarAlerta('✔ Perfil atualizado com sucesso!', 'success');
+    document.getElementById('modal-editar-perfil').classList.remove('show');
+    
+    // Limpa campos de senha
+    if (document.getElementById('alterar-senha-toggle')) {
+      document.getElementById('alterar-senha-toggle').checked = false;
+      document.getElementById('senha-fields').style.display = 'none';
+      document.getElementById('senha-atual').value = '';
+      document.getElementById('senha-nova').value = '';
+    }
+    
+    // Recarrega dados
     setTimeout(() => carregarDadosDoador(), 800);
 
   } catch (err) {
@@ -592,7 +620,6 @@ async function realizarLogout() {
   }
 }
 
-// CRIAR NOVA DOAÇÃO
 async function criarDoacao() {
   const inputKwh = document.getElementById('input-kwh');
   const quantidade = parseFloat(inputKwh.value);
@@ -625,9 +652,8 @@ async function criarDoacao() {
   }
 }
 
-// EDITAR DOAÇÃO
 function abrirModalEdicao(idCredito, qtdAtual) {
-  const novaQtd = prompt(`Editar Doação #${idCredito}\n\nQuantidade atual: ${qtdAtual} kWh\nNova quantidade (kWh):`, qtdAtual);
+  showModalEditarDoacao(idCredito, qtdAtual);
   
   if (novaQtd === null) return;
   
@@ -667,13 +693,87 @@ async function editarDoacao(idCredito, novaQuantidade) {
   }
 }
 
-// EXCLUIR DOAÇÃO
 function confirmarExclusao(idCredito) {
-  const confirmacao = confirm(`ATENÇÃO!\n\nDeseja realmente EXCLUIR a doação #${idCredito}?\n\nEsta ação não pode ser desfeita.`);
+  showModalExcluirDoacao(idCredito);
   
   if (confirmacao) {
     excluirDoacao(idCredito);
   }
+}
+
+function showModalEditarDoacao(idCredito, qtdAtual) {
+  const modal = getOrCreateModal('modalEditarDoacao', `
+    <div class="modal-overlay" id="modalEditarDoacao">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon info">
+            <i class="fas fa-edit"></i>
+          </div>
+          <div class="modal-header-text">
+            <h2>Editar Doação</h2>
+            <small>Doação #${idCredito}</small>
+          </div>
+        </div>
+        <div class="modal-body">
+          Quantidade atual: <strong>${qtdAtual} kWh</strong>
+        </div>
+        <div class="modal-input-group">
+          <label>Nova quantidade (kWh):</label>
+          <input type="number" id="inputNovaQuantidadeDoacao" step="0.01" value="${qtdAtual}">
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn-secondary" onclick="closeModalInterativo('modalEditarDoacao')">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button class="modal-btn-primary" onclick="confirmarEditarDoacaoModal(${idCredito})">
+            <i class="fas fa-save"></i> Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+  modal.classList.add('active');
+}
+
+function confirmarEditarDoacaoModal(idCredito) {
+  const novaQtd = document.getElementById('inputNovaQuantidadeDoacao').value;
+  closeModalInterativo('modalEditarDoacao');
+  editarDoacao(idCredito, parseFloat(novaQtd));
+}
+
+function showModalExcluirDoacao(idCredito) {
+  const modal = getOrCreateModal('modalExcluirDoacao', `
+    <div class="modal-overlay" id="modalExcluirDoacao">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon danger">
+            <i class="fas fa-trash"></i>
+          </div>
+          <div class="modal-header-text">
+            <h2>Excluir doação?</h2>
+            <small>Doação #${idCredito}</small>
+          </div>
+        </div>
+        <div class="modal-body">
+          <strong>Atenção:</strong> Esta ação não pode ser desfeita. A doação será removida permanentemente do sistema.
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn-secondary" onclick="closeModalInterativo('modalExcluirDoacao')">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button class="modal-btn-danger" onclick="confirmarExcluirDoacaoModal(${idCredito})">
+            <i class="fas fa-trash"></i> Excluir Doação
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+  modal.classList.add('active');
+}
+
+function confirmarExcluirDoacaoModal(idCredito) {
+  closeModalInterativo('modalExcluirDoacao');
+  excluirDoacao(idCredito);
 }
 
 async function excluirDoacao(idCredito) {
@@ -699,7 +799,6 @@ async function excluirDoacao(idCredito) {
   }
 }
 
-// SISTEMA DE ALERTAS
 function mostrarAlerta(mensagem, tipo = 'info') {
   const alertaExistente = document.querySelector('.alerta-flutuante');
   if (alertaExistente) {
@@ -729,3 +828,33 @@ function mostrarAlerta(mensagem, tipo = 'info') {
     }
   }, 5000);
 }
+
+function getOrCreateModal(modalId, html) {
+  let modal = document.getElementById(modalId);
+  if (!modal) {
+    document.body.insertAdjacentHTML('beforeend', html);
+    modal = document.getElementById(modalId);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    });
+  }
+  return modal;
+}
+
+function closeModalInterativo(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+      m.classList.remove('active');
+    });
+  }
+});

@@ -16,7 +16,7 @@ class Database:
                 host="localhost",
                 database="energia_db",
                 user="postgres",
-                password="123senha", 
+                password="senha123", 
                 port="5432"
             )
             self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
@@ -163,20 +163,17 @@ class Database:
             status = self.buscar_um(query_status)
             id_status = status['id_status'] if status else 1
 
-            # 4. Criar telefone dummy
-            query_tel = "INSERT INTO telefone (numero) VALUES (%s) RETURNING id_telefone"
-            cursor_tel = self.executar(query_tel, ('00000000000',))
-            id_telefone = cursor_tel.fetchone()['id_telefone']
-
-            # 5. Criar usuário
+            # 4. Criar usuário (sem telefone)
+            # Nota: o fluxo de cadastro inicial NÃO utiliza telefone. Inserimos apenas
+            # os campos mínimos: nome, email, id_tipo, id_status, cep e id_credencial.
             query_usuario = """
-                INSERT INTO usuario (nome, email, id_telefone, id_tipo, id_status, cep, id_credencial)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO usuario (nome, email, id_tipo, id_status, cep, id_credencial)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id_usuario
             """
             cursor = self.executar(
-                query_usuario, 
-                (nome, email, id_telefone, id_tipo, id_status, '00000-000', id_credencial)
+                query_usuario,
+                (nome, email, id_tipo, id_status, '00000-000', id_credencial)
             )
             id_usuario = cursor.fetchone()['id_usuario']
             # Garantir que a criação do usuário seja confirmada no banco
@@ -448,7 +445,6 @@ class Database:
                 SELECT 
                     u.id_usuario, 
                     u.id_credencial, 
-                    u.id_telefone, 
                     d.id_doador,
                     b.id_beneficiario
                 FROM usuario u
@@ -461,7 +457,6 @@ class Database:
 
             id_usuario = row['id_usuario']
             id_cred    = row['id_credencial']
-            id_tel     = row['id_telefone']
             id_doador  = row['id_doador']
             id_benef   = row['id_beneficiario']
 
@@ -487,13 +482,11 @@ class Database:
             # Logs vinculados ao usuário
             self.executar("DELETE FROM log_auditoria WHERE id_usuario = %s", (id_usuario,))
 
-            # Por fim, o usuário e suas credenciais/telefone
+            # Por fim, o usuário e suas credenciais
             self.executar("DELETE FROM usuario WHERE id_usuario = %s", (id_usuario,))
             if id_cred:
                 self.executar("DELETE FROM credencial_usuario WHERE id_credencial = %s", (id_cred,))
-            if id_tel:
-                self.executar("DELETE FROM telefone WHERE id_telefone = %s", (id_tel,))
-            
+            # Não removemos telefone pois o sistema NÃO usa telefone no cadastro inicial
             return True
 
         except Exception as e:
@@ -700,39 +693,62 @@ class Database:
         self.executar(query, (quantidade_atual, id_credito))
     
     def atualizar_status_credito(self, id_credito: int) -> None:
+        """
+        Atualiza o status do crédito baseado no consumo real.
+    
+        Lógica:
+        - DISPONÍVEL: Nenhum consumo (quantidade_disponivel = quantidade_inicial)
+        - PARCIALMENTE_UTILIZADO: Consumo parcial (0 < quantidade_disponivel < quantidade_inicial)
+        - ESGOTADO: Totalmente consumido (quantidade_disponivel = 0)
+        - EXPIRADO: Data de expiração passou
+        """
         try:
-            # Busca quantidade atual
-            query = "SELECT quantidade_disponivel_kwh, data_expiracao FROM credito WHERE id_credito = %s"
+            # Busca dados do crédito
+            query = """
+                SELECT 
+                    c.quantidade_disponivel_kwh,
+                    c.data_expiracao,
+                    -- Calcula quantidade inicial (disponível + consumido)
+                    (
+                        c.quantidade_disponivel_kwh + 
+                        COALESCE(
+                            (SELECT SUM(t.quantidade_kwh)
+                             FROM transacao t
+                             JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao
+                             WHERE t.id_credito = c.id_credito 
+                                AND st.descricao_status = 'CONCLUIDA'),
+                             0
+                        )
+                    ) as quantidade_inicial
+                FROM credito c
+                WHERE c.id_credito = %s
+            """
             result = self.buscar_um(query, (id_credito,))
         
             if not result:
                 return
         
             qtd_disponivel = float(result['quantidade_disponivel_kwh'])
+            qtd_inicial = float(result['quantidade_inicial'])
             data_exp = result['data_expiracao']
         
-            # Define novo status
+            # REGRA 1: Verifica expiração primeiro
             if data_exp and data_exp < date.today():
                 novo_status = 'EXPIRADO'
+        
+            # REGRA 2: Verifica se foi totalmente consumido
             elif qtd_disponivel <= 0:
                 novo_status = 'ESGOTADO'
-            elif qtd_disponivel > 0:
-                # Verifica se já foi parcialmente utilizado
-                query_consumo = """
-                    SELECT COUNT(*) as transacoes 
-                    FROM transacao 
-                    WHERE id_credito = %s
-                """
-                consumo = self.buscar_um(query_consumo, (id_credito,))
-            
-                if consumo and int(consumo['transacoes']) > 0:
-                    novo_status = 'PARCIALMENTE_UTILIZADO'
-                else:
-                    novo_status = 'DISPONIVEL'
+        
+            # REGRA 3: Verifica se foi parcialmente consumido
+            elif qtd_disponivel < qtd_inicial:
+                novo_status = 'PARCIALMENTE_UTILIZADO'
+        
+            # REGRA 4: Nenhum consumo ainda
             else:
                 novo_status = 'DISPONIVEL'
         
-            # Busca ID do status
+            # Busca ID do status e atualiza
             query_status = "SELECT id_status_credito FROM status_credito WHERE descricao_status = %s"
             status = self.buscar_um(query_status, (novo_status,))
         
@@ -742,8 +758,11 @@ class Database:
                     (status['id_status_credito'], id_credito)
                 )
             
+                print(f"✅ Crédito #{id_credito}: Status atualizado para {novo_status}")
+                print(f"   📊 Inicial: {qtd_inicial:.2f} kWh | Disponível: {qtd_disponivel:.2f} kWh")
+        
         except Exception as e:
-            print(f"Erro ao atualizar status do crédito {id_credito}: {e}")
+            print(f"❌ Erro ao atualizar status do crédito {id_credito}: {e}")
     
 
     # FILA DE ESPERA
@@ -1066,3 +1085,135 @@ class Database:
             raise Exception(f"Erro na distribuição: {str(e)}")
         finally:
             self._set_autocommit_safe(True)
+
+    def gerar_codigo_recuperacao(self, email):
+        """
+        Gera código de recuperação para o email informado.
+        Retorna código de 6 dígitos ou None se email não existe.
+        """
+        import random
+
+        # Verifica se email existe E está ativo
+        query = """
+            SELECT u.id_usuario 
+            FROM usuario u
+            JOIN status s ON u.id_status = s.id_status
+            WHERE u.email = %s AND s.descricao_status = 'ATIVO'
+        """
+        usuario = self.buscar_um(query, (email,))
+
+        if not usuario:
+            return None
+
+        # Gera código aleatório de 6 dígitos
+        codigo = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+        # Remove códigos antigos deste email
+        query_delete = "DELETE FROM codigo_recuperacao WHERE email = %s"
+        self.executar(query_delete, (email,))
+
+        # Insere novo código com timestamp
+        query_insert = """
+            INSERT INTO codigo_recuperacao (email, codigo, data_criacao)
+            VALUES (%s, %s, NOW())
+        """
+        self.executar(query_insert, (email, codigo))
+    
+        #COMMIT para garantir persistência
+        try:
+            self.conn.commit()
+        except Exception:
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+
+        return codigo
+
+    def validar_codigo_recuperacao(self, email, codigo):
+        """
+        Valida código de recuperação.
+        Código expira em 15 minutos.
+        """
+        # Busca o código e a data de criação (se houver)
+        query = """
+            SELECT codigo, data_criacao,
+                EXTRACT(EPOCH FROM (NOW() - data_criacao))/60 as minutos_passados
+            FROM codigo_recuperacao
+            WHERE email = %s AND codigo = %s
+            ORDER BY data_criacao DESC
+            LIMIT 1
+        """
+        resultado = self.buscar_um(query, (email, codigo))
+
+        if not resultado:
+            # Não existe código para esse par email+codigo
+            return 'INVALIDO'
+
+        minutos = float(resultado.get('minutos_passados', 0))
+
+        # Se passou mais do que 15 minutos -> expirado
+        if minutos > 15:
+            print(f"❌ Código expirado! Foi gerado há {minutos:.1f} minutos (limite: 15 min)")
+            # Remove código expirado
+            try:
+                self.executar("DELETE FROM codigo_recuperacao WHERE email = %s AND codigo = %s", (email, codigo))
+                try:
+                    self.conn.commit()
+                except Exception:
+                    try:
+                        self.conn.rollback()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            return 'EXPIRADO'
+
+        # Código encontrado e dentro do prazo
+        print(f"✅ Código válido! Gerado há {minutos:.1f} minutos")
+        # Remove código usado
+        try:
+            self.executar("DELETE FROM codigo_recuperacao WHERE email = %s AND codigo = %s", (email, codigo))
+            try:
+                self.conn.commit()
+            except Exception:
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        return 'OK'
+
+    def resetar_senha(self, email, nova_senha):
+        """
+        Reseta senha do usuário após validação do código.
+        """
+        try:
+            # Busca credencial do usuário
+            query = """
+                SELECT c.id_credencial
+                FROM usuario u
+                JOIN credencial_usuario c ON u.id_credencial = c.id_credencial
+                WHERE u.email = %s
+            """
+            resultado = self.buscar_um(query, (email,))
+        
+            if not resultado:
+                return False
+        
+            # Atualiza senha
+            query_update = """
+                UPDATE credencial_usuario
+                SET senha_hash = crypt(%s, gen_salt('bf'))
+                WHERE id_credencial = %s
+            """
+            self.executar(query_update, (nova_senha, resultado['id_credencial']))
+        
+            return True
+        
+        except Exception as e:
+            print(f"Erro ao resetar senha: {e}")
+            self.conn.rollback()
+            return False

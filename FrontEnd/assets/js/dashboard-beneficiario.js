@@ -1,5 +1,5 @@
 // ============================================
-// DASHBOARD BENEFICIÁRIO - COM ALERTAS INTERATIVOS
+// DASHBOARD BENEFICIÁRIO
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -79,71 +79,91 @@ async function carregarDados() {
 }
 
 // ✅ FUNÇÃO EDITAR SOLICITAÇÃO
-async function editarSolicitacao(idFila, quantidadeAtual) {
-  const novaQuantidade = prompt(
-    `Editar solicitação\n\nQuantidade atual: ${quantidadeAtual} kWh\n\n⚠️ ATENÇÃO: Qualquer alteração joga sua solicitação para o FINAL DA FILA.\n\nDigite a nova quantidade:`, 
-    quantidadeAtual
-  );
-  
-  if (novaQuantidade === null) return; // Cancelou
-  
-  const qtd = parseFloat(novaQuantidade);
-  
-  if (!qtd || qtd <= 0 || isNaN(qtd)) {
-    mostrarAlerta('Por favor, digite uma quantidade válida', 'warning');
+function editarSolicitacao(idFila, quantidadeAtual,status) {
+
+  if (status !== 'AGUARDANDO') {
+    mostrarAlerta('⚠️ Só é possível editar solicitações que estão aguardando', 'warning');
     return;
   }
 
-  try {
-    const resp = await fetch('/api/beneficiario/solicitacao/editar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id_fila: idFila,
-        quantidade_kwh: qtd // ✅ Garante que seja número válido
-      })
-    });
-
-    const data = await resp.json();
-
-    if (data.sucesso) {
-      mostrarAlerta('✅ ' + data.mensagem, 'success');
-      await carregarDados();
-    } else {
-      mostrarAlerta('❌ ' + data.mensagem, 'error');
-    }
-  } catch (err) {
-    console.error('Erro:', err);
-    mostrarAlerta('Erro de conexão com o servidor', 'error');
-  }
+  showModalEditarSolicitacao(idFila, quantidadeAtual);
 }
 
-// ✅ FUNÇÃO EXCLUIR SOLICITAÇÃO - COM ALERTA INTERATIVO
-async function excluirSolicitacao(idFila) {
-  // ✅ Usa confirm nativo (mais seguro para confirmação de exclusão)
-  if (!confirm('⚠️ Tem certeza que deseja CANCELAR esta solicitação?\n\nEsta ação não pode ser desfeita.')) {
+function showModalEditarSolicitacao(idFila, qtdAtual) {
+  const modal = getOrCreateModal('modalEditarSolicitacao', `
+    <div class="modal-overlay" id="modalEditarSolicitacao">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon info">
+            <i class="fas fa-edit"></i>
+          </div>
+          <div class="modal-header-text">
+            <h2>Editar Solicitação</h2>
+            <small>Solicitação #${idFila}</small>
+          </div>
+        </div>
+        <div class="modal-body">
+          Quantidade atual: <strong>${qtdAtual} kWh</strong>
+          <br><br>
+          <strong style="color: #f1c40f;">⚠️ Atenção:</strong> Qualquer alteração reposicionará sua solicitação para o <strong>final da fila</strong>.
+        </div>
+        <div class="modal-input-group">
+          <label>Nova quantidade (kWh):</label>
+          <input type="number" id="inputNovaQuantidadeSolicitacao" step="0.01" value="${qtdAtual}">
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn-secondary" onclick="closeModalInterativo('modalEditarSolicitacao')">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button class="modal-btn-primary" onclick="confirmarEditarSolicitacaoModal(${idFila})">
+            <i class="fas fa-save"></i> Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+  modal.classList.add('active');
+}
+
+//FUNÇÃO EXCLUIR SOLICITAÇÃO
+function excluirSolicitacao(idFila, status) {
+
+  if (status !== 'AGUARDANDO') {
+    mostrarAlerta('⚠️ Só é possível excluir solicitações que estão aguardando', 'warning');
     return;
   }
 
-  try {
-    const resp = await fetch('/api/beneficiario/solicitacao/excluir', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_fila: idFila })
-    });
+  showModalCancelarSolicitacao(idFila);
+}
 
-    const data = await resp.json();
-
-    if (data.sucesso) {
-      mostrarAlerta('✅ ' + data.mensagem, 'success');
-      await carregarDados();
-    } else {
-      mostrarAlerta('❌ ' + data.mensagem, 'error');
-    }
-  } catch (err) {
-    console.error('Erro:', err);
-    mostrarAlerta('Erro de conexão com o servidor', 'error');
-  }
+function showModalCancelarSolicitacao(idFila) {
+  const modal = getOrCreateModal('modalCancelarSolicitacao', `
+    <div class="modal-overlay" id="modalCancelarSolicitacao">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon warning">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="modal-header-text">
+            <h2>Cancelar solicitação?</h2>
+            <small>Solicitação #${idFila}</small>
+          </div>
+        </div>
+        <div class="modal-body">
+          Tem certeza que deseja <strong>cancelar esta solicitação</strong>? Esta ação <strong>não pode ser desfeita</strong> e você será removido da fila.
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn-secondary" onclick="closeModalInterativo('modalCancelarSolicitacao')">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button class="modal-btn-danger" onclick="confirmarCancelarSolicitacaoModal(${idFila})">
+            <i class="fas fa-check"></i> Confirmar Cancelamento
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+  modal.classList.add('active');
 }
 
 function configurarModal() {
@@ -365,10 +385,10 @@ function renderizarHistoricoComFiltros(historico) {
 
   historicoFiltrado.forEach(h => {
     const dataFormatada = new Date(h.data_transacao).toLocaleDateString('pt-BR');
-    
+  
     let statusClass = 'aguardando';
     let statusText = 'NÃO';
-    
+  
     if (h.foi_atendido === 'SIM') {
       statusClass = 'atendido';
       statusText = 'SIM ✓';
@@ -376,17 +396,21 @@ function renderizarHistoricoComFiltros(historico) {
       statusClass = 'cancelado';
       statusText = 'CANCELADO';
     }
-    
+  
     const posicaoTexto = h.descricao_status === 'AGUARDANDO' 
       ? `${h.posicao_fila || '-'}º`
       : '-';
-    
-    // Botões de ação (só aparece se AGUARDANDO)
+  
+    //CORREÇÃO: Passa o status como parâmetro
     const botoesAcao = h.descricao_status === 'AGUARDANDO' ? `
-      <button class="btn-acao btn-editar" onclick="editarSolicitacao(${h.id_fila}, ${h.quantidade_kwh})" title="Editar Solicitação">
+      <button class="btn-acao btn-editar" 
+              onclick="editarSolicitacao(${h.id_fila}, ${h.quantidade_kwh}, '${h.descricao_status}')" 
+              title="Editar Solicitação">
         <i class="fas fa-edit"></i>
       </button>
-      <button class="btn-acao btn-excluir" onclick="excluirSolicitacao(${h.id_fila})" title="Cancelar Solicitação">
+      <button class="btn-acao btn-excluir" 
+              onclick="excluirSolicitacao(${h.id_fila}, '${h.descricao_status}')" 
+              title="Cancelar Solicitação">
         <i class="fas fa-trash"></i>
       </button>
     ` : '<span style="color: #666;">-</span>';
@@ -540,3 +564,104 @@ function restaurarValoresFiltrosSolicitacoes() {
   if (inputQtdMin) inputQtdMin.value = filtrosSolicitacoes.quantidadeMin || '';
   if (inputQtdMax) inputQtdMax.value = filtrosSolicitacoes.quantidadeMax || '';
 }
+
+function getOrCreateModal(modalId, html) {
+  // Sempre recria o modal com o HTML fornecido para evitar conteúdo/IDs obsoletos
+  // (problema: se reaproveitar o elemento antigo, o onclick pode manter o id antigo)
+  const existing = document.getElementById(modalId);
+  if (existing) {
+    existing.remove();
+  }
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  const modal = document.getElementById(modalId);
+
+  // Fecha modal quando clicar no overlay
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  });
+
+  return modal;
+}
+
+function closeModalInterativo(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+      m.classList.remove('active');
+    });
+  }
+
+// ============================================
+// CONFIRMAR EDIÇÃO DE SOLICITAÇÃO
+// ============================================
+async function confirmarEditarSolicitacaoModal(idFila) {
+  try {
+    const novaQuantidade = parseFloat(document.getElementById('inputNovaQuantidadeSolicitacao').value);
+    
+    if (!novaQuantidade || novaQuantidade <= 0) {
+      mostrarAlerta('Informe uma quantidade válida', 'warning');
+      return;
+    }
+
+    const resp = await fetch('/api/beneficiario/solicitacao/editar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `id_fila=${idFila}&quantidade_kwh=${novaQuantidade}`
+    });
+
+    const data = await resp.json();
+
+    // ✅ TRATAMENTO CORRETO DO STATUS HTTP
+    if (data.sucesso) {
+      mostrarAlerta('✅ ' + data.mensagem, 'success');
+      closeModalInterativo('modalEditarSolicitacao');
+      await carregarDados();
+    } else {
+      mostrarAlerta('❌ ' + (data.mensagem || 'Erro ao editar'), 'error');
+    }
+  } catch (err) {
+    console.error('Erro:', err);
+    mostrarAlerta('Erro de conexão com o servidor', 'error');
+  }
+}
+
+// ============================================
+// CONFIRMAR CANCELAMENTO DE SOLICITAÇÃO
+// ============================================
+async function confirmarCancelarSolicitacaoModal(idFila) {
+  try {
+    const resp = await fetch('/api/beneficiario/solicitacao/excluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `id_fila=${idFila}`
+    });
+
+    const data = await resp.json();
+
+    if (data.sucesso) {
+      mostrarAlerta('✅ ' + data.mensagem, 'success');
+      closeModalInterativo('modalCancelarSolicitacao');
+      await carregarDados();
+    } else {
+      mostrarAlerta('❌ ' + (data.mensagem || 'Erro ao cancelar'), 'error');
+    }
+  } catch (err) {
+    console.error('Erro:', err);
+    mostrarAlerta('Erro de conexão com o servidor', 'error');
+  }
+}
+
+// Torna as funções acessíveis globalmente
+window.confirmarEditarSolicitacaoModal = confirmarEditarSolicitacaoModal;
+window.confirmarCancelarSolicitacaoModal = confirmarCancelarSolicitacaoModal;
+
+});

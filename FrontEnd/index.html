@@ -105,7 +105,7 @@
           <li><a href="#sobre" class="nav__link">Sobre</a></li>
           <li><a href="#como-funciona" class="nav__link">Como Funciona</a></li>
           <li><a href="#duvida" class="nav__link">Dúvidas frequentes</a></li>
-          <li><a href="login.html" class="nav__link login_btn">Login</a></li>
+          <li><a href="login.html" class="nav__link login_btn" id="nav-login-btn">Login</a></li>
         </ul>
       </nav>
       <button id="mobile_btn" aria-label="Abrir menu mobile" aria-controls="mobile_menu" aria-expanded="false">
@@ -120,7 +120,7 @@
         <li class="nav_item"><a href="#como-funciona">Como Funciona</a></li>
         <li class="nav_item"><a href="#duvida">Dúvidas frequentes</a></li>
       </ul>
-      <a href="login.html" class="btn btn--neon" style="margin-top:1rem;">Login</a>
+      <a href="login.html" class="btn btn--neon" id="mobile-login-btn" style="margin-top:1rem;">Login</a>
     </nav>
   </header>
 
@@ -152,9 +152,18 @@
         <span class="section__label">Nosso Impacto</span>
         <h2 class="section__title">Energia transformando vidas</h2>
         <div class="impact__stats">
-          <div class="impact__stat"><h4>1.2M kWh</h4><p>Distribuídos</p></div>
-          <div class="impact__stat"><h4>850</h4><p>Famílias atendidas</p></div>
-          <div class="impact__stat"><h4>120</h4><p>Comunidades alcançadas</p></div>
+          <div class="impact__stat">
+            <h4 id="total-kwh-distribuido">
+              <span class="loader-text">Carregando...</span>
+            </h4>
+            <p>Distribuídos</p>
+          </div>
+          <div class="impact__stat">
+            <h4 id="familias-atendidas">
+              <span class="loader-text">Carregando...</span>
+            </h4>
+            <p>Famílias atendidas</p>
+          </div>
         </div>
       </div>
     </section>
@@ -256,7 +265,7 @@
               <i data-feather="chevron-down"></i>
             </button>
             <div class="faq__answer">
-              <p>Não! A operação é totalmente gratuita — você contribui apenas com o excedente que já teria naturalmente.</p>
+              <p>Não! A operação é totalmente gratuita – você contribui apenas com o excedente que já teria naturalmente.</p>
             </div>
           </div>
 
@@ -284,15 +293,158 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       await verificarUsuarioLogado();
+      await carregarEstatisticasReais();
     });
 
+    async function carregarEstatisticasReais() {
+      try {
+        console.log('🔄 Buscando estatísticas...');
+        
+        const response = await fetch('/api/estatisticas-gerais', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            }
+        });
+
+        if (response.ok) {
+            const resultado = await response.json();
+            console.log('📊 Resposta da API:', resultado);
+          
+            if (resultado.sucesso && resultado.dados) {
+                const { total_kwh, familias_atendidas } = resultado.dados;
+            
+                // Formata kWh
+                let kwhFormatado;
+                if (total_kwh >= 1000000) {
+                    kwhFormatado = (total_kwh / 1000000).toFixed(1) + 'M kWh';
+                } else if (total_kwh >= 1000) {
+                    kwhFormatado = (total_kwh / 1000).toFixed(1) + 'K kWh';
+                } else {
+                    kwhFormatado = total_kwh.toFixed(0) + ' kWh';
+                }
+            
+                // Atualiza DOM
+                const elementoKwh = document.getElementById('total-kwh-distribuido');
+                const elementoFamilias = document.getElementById('familias-atendidas');
+            
+                if (elementoKwh) {
+                    elementoKwh.textContent = kwhFormatado;
+                    console.log('✅ kWh atualizado:', kwhFormatado);
+                }
+            
+                if (elementoFamilias) {
+                    elementoFamilias.textContent = familias_atendidas;
+                    console.log('✅ Famílias atualizadas:', familias_atendidas);
+                }
+            } else {
+                console.error('❌ Dados inválidos:', resultado);
+                exibirEstatisticasPadrao();
+            }
+        } else {
+            console.error('❌ Erro HTTP:', response.status);
+            exibirEstatisticasPadrao();
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar estatísticas:', error);
+        exibirEstatisticasPadrao();
+      }
+  }
+
+function exibirEstatisticasPadrao() {
+    const elementoKwh = document.getElementById('total-kwh-distribuido');
+    const elementoFamilias = document.getElementById('familias-atendidas');
+    
+    if (elementoKwh) elementoKwh.textContent = '0 kWh';
+    if (elementoFamilias) elementoFamilias.textContent = '0';
+}
+
+    // ✅ FUNÇÃO PRINCIPAL: Verificar se usuário está logado e mostrar card
     async function verificarUsuarioLogado() {
       try {
-        const resp = await fetch('/api/meu-perfil');
-        const data = await resp.json();
+        // Tenta múltiplos endpoints para garantir que funcione
+        let data = null;
+        
+        // Primeira tentativa: /api/meu-perfil
+        try {
+          const resp = await fetch('/api/meu-perfil', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          if (resp.ok) {
+            data = await resp.json();
+          }
+        } catch (e) {
+          console.log('Primeira tentativa falhou, tentando alternativa...');
+        }
 
-        if (data.sucesso && data.usuario_id) {
-          // Usuário está logado - mostrar card
+        // Segunda tentativa: verificar se há dados de sessão
+        if (!data || !data.sucesso) {
+          try {
+            const resp2 = await fetch('/api/beneficiario/dados', {
+              credentials: 'include'
+            });
+            if (resp2.ok) {
+              const benefData = await resp2.json();
+              if (benefData.sucesso) {
+                data = {
+                  sucesso: true,
+                  usuario_id: benefData.dados?.usuario_id || true,
+                  nome: benefData.dados?.nome || 'Usuário',
+                  tipo: 'BENEFICIARIO'
+                };
+              }
+            }
+          } catch (e) {
+            // Ignora
+          }
+        }
+
+        // Terceira tentativa: verificar doador
+        if (!data || !data.sucesso) {
+          try {
+            const resp3 = await fetch('/api/doador/dados', {
+              credentials: 'include'
+            });
+            if (resp3.ok) {
+              const doadorData = await resp3.json();
+              if (doadorData.sucesso) {
+                data = {
+                  sucesso: true,
+                  usuario_id: doadorData.dados?.usuario_id || true,
+                  nome: doadorData.dados?.nome || doadorData.dados?.razao_social || 'Usuário',
+                  tipo: 'DOADOR'
+                };
+              }
+            }
+          } catch (e) {
+            // Ignora
+          }
+        }
+
+        // Se conseguiu dados de alguma fonte
+        if (data && data.sucesso && data.usuario_id) {
+          console.log('✅ Usuário logado detectado:', data.nome, '-', data.tipo);
+          
+          // 1. ESCONDER BOTÕES DE LOGIN (desktop e mobile)
+          const btnLoginDesktop = document.getElementById('nav-login-btn');
+          const btnLoginMobile = document.getElementById('mobile-login-btn');
+          
+          if (btnLoginDesktop) {
+            btnLoginDesktop.style.display = 'none';
+          }
+          
+          if (btnLoginMobile) {
+            btnLoginMobile.style.display = 'none';
+          }
+
+          // 2. MOSTRAR CARD DE BOAS-VINDAS
           const cardDashboard = document.getElementById('card-dashboard-logado');
           const nomeUsuarioCard = document.getElementById('nome-usuario-card');
           const btnAcessarDashboard = document.getElementById('btn-acessar-dashboard');
@@ -301,23 +453,94 @@
             nomeUsuarioCard.textContent = `Olá, ${data.nome}!`;
             cardDashboard.style.display = 'block';
 
-            // Configurar clique do botão para ir ao dashboard apropriado
-            btnAcessarDashboard.addEventListener('click', () => {
-              if (data.tipo === 'BENEFICIARIO') {
+            // 3. CONFIGURAR CLIQUE DO BOTÃO PARA IR AO DASHBOARD CORRETO
+            btnAcessarDashboard.onclick = () => {
+              if (data.tipo === 'ADMINISTRADOR') {
+                window.location.href = '/crud';
+              } else if (data.tipo === 'BENEFICIARIO') {
                 window.location.href = '/painel-beneficiario';
               } else if (data.tipo === 'DOADOR') {
                 window.location.href = '/painel-doador';
               } else {
-                // Fallback para página padrão
                 window.location.href = '/';
               }
-            });
+            };
           }
+        } else {
+          console.log('ℹ️ Usuário não logado - página inicial normal');
         }
       } catch (err) {
-        console.log('Usuário não logado - página inicial normal');
+        console.log('ℹ️ Erro ao verificar usuário:', err.message);
       }
     }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+    await carregarEstatisticasReais();
+});
+
+async function carregarEstatisticasReais() {
+    try {
+        console.log('📊 Buscando estatísticas do banco...');
+        
+        const response = await fetch('/api/estatisticas-gerais', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            }
+        });
+
+        if (response.ok) {
+            const resultado = await response.json();
+            console.log('✅ Estatísticas recebidas:', resultado);
+            
+            if (resultado.sucesso && resultado.dados) {
+                const { total_kwh, familias_atendidas } = resultado.dados;
+                
+                // Formata kWh para exibição
+                let kwhFormatado;
+                if (total_kwh >= 1000000) {
+                    kwhFormatado = (total_kwh / 1000000).toFixed(1) + 'M kWh';
+                } else if (total_kwh >= 1000) {
+                    kwhFormatado = (total_kwh / 1000).toFixed(1) + 'K kWh';
+                } else {
+                    kwhFormatado = total_kwh.toFixed(0) + ' kWh';
+                }
+                
+                // Atualiza elementos do DOM
+                const elementoKwh = document.getElementById('total-kwh-distribuido');
+                const elementoFamilias = document.getElementById('familias-atendidas');
+                
+                if (elementoKwh) {
+                    elementoKwh.textContent = kwhFormatado;
+                    console.log('✅ kWh atualizado:', kwhFormatado);
+                }
+                
+                if (elementoFamilias) {
+                    elementoFamilias.textContent = familias_atendidas;
+                    console.log('✅ Famílias atualizadas:', familias_atendidas);
+                }
+            } else {
+                console.error('❌ Dados inválidos:', resultado);
+                exibirEstatisticasPadrao();
+            }
+        } else {
+            console.error('❌ Erro HTTP:', response.status);
+            exibirEstatisticasPadrao();
+        }
+    } catch (error) {
+        console.error('❌ Erro ao buscar estatísticas:', error);
+        exibirEstatisticasPadrao();
+    }
+}
+
+function exibirEstatisticasPadrao() {
+    const elementoKwh = document.getElementById('total-kwh-distribuido');
+    const elementoFamilias = document.getElementById('familias-atendidas');
+    
+    if (elementoKwh) elementoKwh.textContent = '0 kWh';
+    if (elementoFamilias) elementoFamilias.textContent = '0';
+}
   </script>
 
   <script src="/assets/js/main.js"></script>

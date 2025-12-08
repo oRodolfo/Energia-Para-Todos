@@ -365,15 +365,9 @@ function initializeSocialLogin() {
     }
 
     if (forgotPassword) {
-        forgotPassword.addEventListener('click', async (e) => {
+        forgotPassword.addEventListener('click', (e) => {
             e.preventDefault();
-            if (window.showModalAlert) {
-                await window.showModalAlert({ 
-                    title: 'Recuperação de senha', 
-                    message: 'Funcionalidade em desenvolvimento. Entre em contato com o suporte.', 
-                    type: 'info' 
-                });
-            }
+            window.location.href = '/recuperar-senha';
         });
     }
 }

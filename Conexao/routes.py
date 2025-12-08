@@ -94,13 +94,23 @@ class Routes:
                 }
             
             # Se tudo estiver ok (com perfil com todas as informações completas), redireciona para o painel apropriado
-            redirect = '/painel-beneficiario' if usuario['tipo_usuario'] == 'BENEFICIARIO' else '/painel-doador'
+            tipo_usuario = (usuario.get('tipo_usuario') or '').upper()
+            if tipo_usuario == 'BENEFICIARIO':
+                redirect = '/painel-beneficiario'
+                mensagem_final = 'Login realizado com sucesso!'
+            elif 'ADMIN' in tipo_usuario or tipo_usuario == 'ADMINISTRADOR':
+                # Administradores vão para o CRUD/painel administrativo
+                redirect = '/crud'
+                mensagem_final = 'Login realizado com sucesso! Cadastro administrativo já está completo.'
+            else:
+                redirect = '/painel-doador'
+                mensagem_final = 'Login realizado com sucesso!'
             print(f"Sessão global após login: {Routes._sessao_global}")
             self.sessao = Routes._sessao_global.copy()
 
             return {
                 'sucesso': True,
-                'mensagem': 'Login realizado com sucesso!',
+                'mensagem': mensagem_final,
                 'redirect': redirect
             }
         else:
@@ -127,7 +137,10 @@ class Routes:
             Routes._sessao_global['tipo'] = 'NOVO'
             Routes._sessao_global['id_beneficiario'] = None
             Routes._sessao_global['id_doador'] = None
-        
+            # Garantia explícita: o cadastro inicial NÃO utiliza telefone.
+            Routes._sessao_global.pop('telefone', None)
+            Routes._sessao_global.pop('id_telefone', None)
+
             self.sessao = Routes._sessao_global.copy()
         
             print(f"Cadastro inicial completo: usuario_id={id_usuario}")
@@ -245,8 +258,25 @@ class Routes:
                 detalhes=f'Cadastro beneficiário completo (renda: {renda_familiar}, consumo: {consumo_medio} kWh)'
             )
 
+            # Assegura tipo e vínculo em sessão global
+            Routes._sessao_global['id_beneficiario'] = id_beneficiario
+            Routes._sessao_global['tipo'] = 'BENEFICIARIO'
+            self.sessao = Routes._sessao_global.copy()
+
+            # Garante que o usuário no banco tenha id_tipo correto (caso não tenha sido definido antes)
+            try:
+                self.db.executar("""
+                    UPDATE usuario
+                    SET id_tipo = (
+                        SELECT id_tipo FROM tipo_usuario WHERE descricao_tipo = %s
+                    )
+                    WHERE id_usuario = %s
+                """, ('BENEFICIARIO', usuario_id))
+            except Exception:
+                print('Aviso: não foi possível atualizar id_tipo do usuário para BENEFICIARIO no banco')
+
             return {
-                'sucesso': True, 
+                'sucesso': True,
                 'mensagem': 'Cadastro completo! Você já pode solicitar créditos.',
                 'redirect': '/painel-beneficiario'
             }
@@ -395,18 +425,18 @@ class Routes:
     def criar_solicitacao_beneficiario(self, dados):
         try:
             id_beneficiario = self.sessao.get('id_beneficiario')
-        
+    
             print(f"🔵 criar_solicitacao: id_beneficiario={id_beneficiario}")
-        
+    
             if not id_beneficiario:
                 return {'sucesso': False, 'mensagem': 'Beneficiário não encontrado na sessão'}
-        
+    
             quantidade_solicitada = float(dados.get('quantidade_kwh', 0))
-        
+    
             if quantidade_solicitada <= 0:
                 return {'sucesso': False, 'mensagem': 'Quantidade inválida'}
-        
-            # Busca dados do beneficiário
+    
+            # ✅ Busca dados do beneficiário
             query_benef = """
                 SELECT b.num_moradores, rb.valor_renda, cb.media_kwh
                 FROM beneficiario b
@@ -415,13 +445,13 @@ class Routes:
                 WHERE b.id_beneficiario = %s
             """
             benef_dados = self.db.buscar_um(query_benef, (id_beneficiario,))
-        
+    
             if not benef_dados:
                 return {'sucesso': False, 'mensagem': 'Dados do beneficiário não encontrados'}
-        
+    
             consumo_medio = float(benef_dados['media_kwh'] or 0)
-        
-            # ✅ NOVA LÓGICA: Calcula total já solicitado no mês atual
+    
+            # ✅ CORREÇÃO CRÍTICA: Calcula total APENAS de solicitações ATIVAS no mês
             query_total_mes = """
                 SELECT COALESCE(SUM(f.consumo_medio_kwh), 0) as total_solicitado_mes
                 FROM fila_espera f
@@ -430,32 +460,32 @@ class Routes:
                     AND EXTRACT(MONTH FROM f.data_entrada) = EXTRACT(MONTH FROM CURRENT_DATE)
                     AND EXTRACT(YEAR FROM f.data_entrada) = EXTRACT(YEAR FROM CURRENT_DATE)
                     AND sf.descricao_status_fila IN ('AGUARDANDO', 'ATENDIDO')
-                """
+            """
             result_mes = self.db.buscar_um(query_total_mes, (id_beneficiario,))
             total_ja_solicitado = float(result_mes['total_solicitado_mes']) if result_mes else 0
-        
+    
             # ✅ Calcula quanto ainda pode solicitar
             disponivel_para_solicitar = consumo_medio - total_ja_solicitado
-        
+    
             print(f"📊 Consumo médio: {consumo_medio} kWh")
-            print(f"📊 Já solicitado este mês: {total_ja_solicitado} kWh")
+            print(f"📊 Já solicitado este mês (ATIVO): {total_ja_solicitado} kWh")
             print(f"📊 Disponível para solicitar: {disponivel_para_solicitar} kWh")
             print(f"📊 Quantidade solicitada agora: {quantidade_solicitada} kWh")
-        
+    
             # ✅ VALIDAÇÃO 1: Verifica se já atingiu o limite mensal
             if disponivel_para_solicitar <= 0:
                 return {
                     'sucesso': False,
                     'mensagem': f'Você já solicitou todo seu consumo médio mensal ({consumo_medio} kWh). Aguarde o próximo mês para novas solicitações.'
                 }
-        
+    
             # ✅ VALIDAÇÃO 2: Verifica se nova solicitação ultrapassa limite disponível
             if quantidade_solicitada > disponivel_para_solicitar:
                 return {
                     'sucesso': False,
                     'mensagem': f'Você só pode solicitar até {disponivel_para_solicitar:.2f} kWh. Já solicitou {total_ja_solicitado:.2f} kWh dos seus {consumo_medio} kWh mensais.'
                 }
-        
+    
             # ✅ VALIDAÇÃO 3: Verifica se já está na fila AGUARDANDO (não permite duplicatas)
             query_fila_existe = """
                 SELECT f.id_fila 
@@ -463,15 +493,15 @@ class Routes:
                 JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
                 WHERE f.id_beneficiario = %s 
                     AND sf.descricao_status_fila = 'AGUARDANDO'
-                """
+            """
             fila_existe = self.db.buscar_um(query_fila_existe, (id_beneficiario,))
-        
+    
             if fila_existe:
                 return {
                     'sucesso': False,
                     'mensagem': 'Você já possui uma solicitação aguardando. Aguarde o atendimento ou cancele a anterior.'
                 }
-        
+    
             # ✅ Insere na fila
             self.db.entrar_na_fila(
                 id_beneficiario=id_beneficiario,
@@ -479,9 +509,9 @@ class Routes:
                 consumo_medio_kwh=quantidade_solicitada,
                 num_moradores=int(benef_dados['num_moradores'] or 1)
             )
-        
+    
             mensagem = f'Solicitação de {quantidade_solicitada} kWh registrada! Você entrou na fila.'
-        
+    
             # ✅ Tenta distribuição
             try:
                 resultado_dist = self.db.executar_distribuicao(limite=10)
@@ -489,9 +519,9 @@ class Routes:
                     mensagem += f" {resultado_dist['beneficiarios_atendidos']} beneficiário(s) atendido(s)!"
             except Exception as e:
                 print(f"Distribuição falhou: {e}")
-        
+    
             return {'sucesso': True, 'mensagem': mensagem}
-        
+    
         except Exception as e:
             print(f"ERRO CRIAR SOLICITACAO: {e}")
             import traceback
@@ -643,6 +673,44 @@ class Routes:
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
+        
+    def obter_meu_perfil(self):
+        """Retorna dados básicos do usuário logado para edição de perfil."""
+        try:
+            usuario_id = self.sessao.get('usuario_id')
+            if not usuario_id:
+                return {'sucesso': False, 'mensagem': 'Usuário não autenticado'}
+    
+            query = """
+                SELECT u.id_usuario, u.nome, u.email
+                FROM usuario u
+                WHERE u.id_usuario = %s
+            """
+            dados = self.db.buscar_um(query, (usuario_id,))
+    
+            if not dados:
+                return {'sucesso': False, 'mensagem': 'Usuário não encontrado'}
+
+            # Retorna também informações de sessão essenciais para a UI (tipo e vínculos)
+            tipo = self.sessao.get('tipo')
+            id_doador = self.sessao.get('id_doador')
+            id_beneficiario = self.sessao.get('id_beneficiario')
+
+            return {
+                'sucesso': True,
+                'dados': {
+                    'id_usuario': dados['id_usuario'],
+                    'nome': dados['nome'],
+                    'email': dados['email']
+                },
+                # Campos no nível superior para compatibilidade com FrontEnd
+                'tipo': tipo,
+                'id_doador': id_doador,
+                'id_beneficiario': id_beneficiario
+            }
+        except Exception as e:
+            print(f"ERRO obter_meu_perfil: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
 
     #Cria um crédito para o doador e tenta disparar a distribuição.
     def criar_doacao(self, dados):
@@ -693,6 +761,9 @@ class Routes:
     def verificar_perfil_completo(self, usuario_id, tipo_usuario):
         #Verifica se perfil está completo.
         try:
+            # Administradores não precisam completar perfil adicional
+            if tipo_usuario and ('ADMIN' in tipo_usuario.upper() or tipo_usuario.upper() == 'ADMINISTRADOR'):
+                return True
             if tipo_usuario == 'BENEFICIARIO':
                 query = """
                     SELECT b.id_beneficiario, b.id_renda, b.id_consumo, b.num_moradores
@@ -788,8 +859,23 @@ class Routes:
                 self.db.executar(query, tuple(params))
 
             # Atualiza sessão
+            # Assegura tipo e vínculo em sessão global
             Routes._sessao_global['id_doador'] = id_doador
+            Routes._sessao_global['tipo'] = 'DOADOR'
             self.sessao = Routes._sessao_global.copy()
+
+            # Garante que o usuário no banco tenha id_tipo correto (caso não tenha sido definido antes)
+            try:
+                self.db.executar("""
+                    UPDATE usuario
+                    SET id_tipo = (
+                        SELECT id_tipo FROM tipo_usuario WHERE descricao_tipo = %s
+                    )
+                    WHERE id_usuario = %s
+                """, ('DOADOR', usuario_id))
+            except Exception:
+                # Não fatal: se houver problema ao persistir, logamos e continuamos (sessão já atualizada)
+                print('Aviso: não foi possível atualizar id_tipo do usuário para DOADOR no banco')
 
             self.db.registrar_log_auditoria(id_usuario=usuario_id, tipo_acao='CADASTRO', detalhes=f'Cadastro doador id={id_doador}')
 
@@ -801,24 +887,58 @@ class Routes:
             return {'sucesso': False, 'mensagem': str(e)}
     
     def estatisticas_gerais(self):
-        """Retorna estatísticas para página inicial."""
-        return {
-            "familias_atendidas": 850,
-            "total_kwh": 1200000.0
-        }
+        """Retorna estatísticas reais do banco de dados para página inicial."""
+        try:
+            # Total distribuído = Soma de todas transações CONCLUÍDAS
+            query_kwh = """
+                SELECT COALESCE(SUM(t.quantidade_kwh), 0) AS total_kwh
+                FROM transacao t
+                JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao
+                WHERE st.descricao_status = 'CONCLUIDA'
+            """
+            result_kwh = self.db.buscar_um(query_kwh)
+            total_kwh = float(result_kwh['total_kwh']) if result_kwh else 0.0
+        
+            # Famílias atendidas = Número ÚNICO de beneficiários que receberam créditos
+            query_familias = """
+                SELECT COUNT(DISTINCT t.id_beneficiario) AS total_familias
+                FROM transacao t
+                JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao
+                WHERE st.descricao_status = 'CONCLUIDA'
+            """
+            result_familias = self.db.buscar_um(query_familias)
+            total_familias = int(result_familias['total_familias']) if result_familias else 0
+        
+            print(f"📊 Estatísticas gerais: {total_kwh} kWh distribuídos, {total_familias} famílias atendidas")
+        
+            return {
+                "total_kwh": round(total_kwh, 2),
+                "familias_atendidas": total_familias
+            }
+        except Exception as e:
+            print(f"❌ Erro ao obter estatísticas gerais: {e}")
+            import traceback
+            traceback.print_exc()
+            # Retorna valores padrão em caso de erro
+            return {
+                "total_kwh": 0.0,
+                "familias_atendidas": 0
+            }
     
     # CRUD: EDITAR / EXCLUIR SOLICITAÇÃO (BENEFICIÁRIO)
     def editar_solicitacao(self, dados):
         """
-            Edita uma solicitação na fila (só enquanto AGUARDANDO).
-            REGRA: Atualiza data_entrada para NOW(), jogando para o final da fila.
+        Edita uma solicitação na fila (só enquanto AGUARDANDO).
+        REGRA: Atualiza data_entrada para NOW(), jogando para o final da fila.
         """
         try:
             usuario_id = self.sessao.get('usuario_id')
             id_benef = self.sessao.get('id_beneficiario')
+        
             if not usuario_id or not id_benef:
                 return {'sucesso': False, 'mensagem': 'Usuário não autenticado'}
 
+            # VALIDAÇÃO E CONVERSÃO SEGURA DOS DADOS
             id_fila_raw = dados.get('id_fila')
             nova_qtd_raw = dados.get('quantidade_kwh')
 
@@ -828,7 +948,6 @@ class Routes:
             if nova_qtd_raw is None:
                 return {'sucesso': False, 'mensagem': 'Quantidade não informada'}
         
-            #Converte para os tipos corretos APÓS validação
             try:
                 id_fila = int(id_fila_raw)
                 nova_qtd = float(nova_qtd_raw)
@@ -838,57 +957,75 @@ class Routes:
             if nova_qtd <= 0:
                 return {'sucesso': False, 'mensagem': 'Quantidade deve ser maior que zero'}
 
-            # Busca dados do beneficiário para recalcular prioridade
+            # Busca dados do beneficiário
             benef = self.db.buscar_um("""
-                SELECT b.num_moradores, rb.valor_renda
+                SELECT b.num_moradores, rb.valor_renda, cb.media_kwh
                 FROM beneficiario b
                 LEFT JOIN renda_beneficiario rb ON b.id_renda = rb.id_renda
+                LEFT JOIN consumo_beneficiario cb ON b.id_consumo = cb.id_consumo
                 WHERE b.id_beneficiario = %s
             """, (id_benef,))
 
             if not benef:
                 return {'sucesso': False, 'mensagem': 'Beneficiário não encontrado'}
-                
-            #Busca consumo médio atual para validação
-            consumo_info = self.db.buscar_um("""
-                SELECT cb.media_kwh 
-                FROM beneficiario b
-                JOIN consumo_beneficiario cb ON b.id_consumo = cb.id_consumo
-                WHERE b.id_beneficiario = %s
-            """, (id_benef,))
-            
-            consumo_medio = float(consumo_info.get('media_kwh', 0)) if consumo_info else 0
-            if consumo_medio > 0 and nova_qtd_raw > consumo_medio:
+        
+            renda_familiar = float(benef.get('valor_renda') or 0)
+            consumo_medio = float(benef.get('media_kwh') or 0)
+            num_moradores = int(benef.get('num_moradores') or 1)
+
+            # Calcula total EXCETO a solicitação atual
+            query_total_mes = """
+                SELECT COALESCE(SUM(f.consumo_medio_kwh), 0) as total_mes
+                FROM fila_espera f
+                JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
+                WHERE f.id_beneficiario = %s
+                    AND EXTRACT(MONTH FROM f.data_entrada) = EXTRACT(MONTH FROM CURRENT_DATE)
+                    AND EXTRACT(YEAR FROM f.data_entrada) = EXTRACT(YEAR FROM CURRENT_DATE)
+                    AND sf.descricao_status_fila IN ('AGUARDANDO', 'ATENDIDO')
+                    AND f.id_fila != %s
+            """
+            result_mes = self.db.buscar_um(query_total_mes, (id_benef, id_fila))
+            total_outras_solicitacoes = float(result_mes['total_mes'] if result_mes else 0)
+
+            # VALIDAÇÃO CORRETA: Soma da NOVA quantidade + outras solicitações
+            total_apos_edicao = nova_qtd + total_outras_solicitacoes
+
+            print(f"📊 Consumo médio: {consumo_medio} kWh")
+            print(f"📊 Outras solicitações ativas: {total_outras_solicitacoes} kWh")
+            print(f"📊 Nova quantidade desta solicitação: {nova_qtd} kWh")
+            print(f"📊 Total após edição: {total_apos_edicao} kWh")
+
+            # VALIDAÇÃO: Total após edição não pode ultrapassar consumo médio
+            if total_apos_edicao > consumo_medio:
+                disponivel = consumo_medio - total_outras_solicitacoes
                 return {
                     'sucesso': False, 
-                    'mensagem': f'Você só pode solicitar até {consumo_medio} kWh (seu consumo médio mensal)'
+                    'mensagem': f'Você só pode solicitar até {disponivel:.2f} kWh nesta solicitação. Já tem {total_outras_solicitacoes:.2f} kWh em outras solicitações. Limite mensal: {consumo_medio} kWh.'
                 }
 
-            num_moradores = int(benef.get('num_moradores', 1))
-            renda = float(benef.get('valor_renda', 0))
-
-            # Verifica se a solicitação existe e pertence ao beneficiário
+            # Verificação de existência e pertence ao beneficiário (busca segura)
             row = self.db.buscar_um("""
                 SELECT f.id_fila, f.id_beneficiario, sf.descricao_status_fila
                 FROM fila_espera f
                 JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
-                WHERE f.id_fila = %s
-            """, (id_fila,))
+                WHERE f.id_fila = %s AND f.id_beneficiario = %s
+            """, (id_fila, id_benef))
 
             if not row:
-                return {'sucesso': False, 'mensagem': 'Solicitação não encontrada'}
-            if row['id_beneficiario'] != id_benef:
-                return {'sucesso': False, 'mensagem': 'Permissão negada'}
-            if row['descricao_status_fila'] != 'AGUARDANDO':
-                return {'sucesso': False, 'mensagem': 'Só é possível editar solicitações enquanto estiverem aguardando.'}
+                return {'sucesso': False, 'mensagem': 'Solicitação não encontrada', 'http_status': 404}
 
-            # Recalcula prioridade
-            pri = self.db.buscar_um("SELECT calcular_prioridade(%s, %s, %s, 0) AS prioridade", (renda, nova_qtd, num_moradores))
+            if row['descricao_status_fila'] != 'AGUARDANDO':
+                return {'sucesso': False, 'mensagem': 'Só é possível editar solicitações enquanto estiverem aguardando.', 'http_status': 400}
+
+            # Recálculo de prioridade
+            pri = self.db.buscar_um(
+                "SELECT calcular_prioridade(%s, %s, %s, 0) AS prioridade", 
+                (renda_familiar, nova_qtd, num_moradores)
+            )
             prioridade = pri['prioridade'] if pri else 0
 
-            #CRÍTICO: Atualiza data_entrada para NOW() (joga para o final da fila)
-            self.db.executar(
-                """
+            # Atualização
+            self.db.executar("""
                 UPDATE fila_espera
                 SET consumo_medio_kwh = %s, 
                     num_moradores = %s, 
@@ -896,9 +1033,7 @@ class Routes:
                     prioridade = %s, 
                     data_entrada = NOW()
                 WHERE id_fila = %s
-                """,
-                (nova_qtd, num_moradores, renda, prioridade, id_fila)
-            )
+            """, (nova_qtd, num_moradores, renda_familiar, prioridade, id_fila))
 
             self.db.registrar_log_auditoria(
                 id_usuario=usuario_id, 
@@ -906,7 +1041,6 @@ class Routes:
                 detalhes=f'id_fila={id_fila} nova_qtd={nova_qtd}'
             )
 
-            # Força commit
             try:
                 self.db.conn.commit()
             except Exception:
@@ -930,32 +1064,45 @@ class Routes:
         try:
             usuario_id = self.sessao.get('usuario_id')
             id_benef = self.sessao.get('id_beneficiario')
+        
             if not usuario_id or not id_benef:
                 return {'sucesso': False, 'mensagem': 'Usuário não autenticado'}
 
-            id_fila = int(dados.get('id_fila', 0))
+            #CONVERSÃO SEGURA
+            try:
+                id_fila = int(dados.get('id_fila', 0))
+            except (ValueError, TypeError):
+                return {'sucesso': False, 'mensagem': 'ID da fila inválido'}
 
+            if id_fila <= 0:
+                return {'sucesso': False, 'mensagem': 'ID da fila inválido'}
+
+            # VERIFICAÇÃO: Se existe e pertence ao beneficiário
+            # Busca a solicitação garantindo que pertença ao beneficiário
             row = self.db.buscar_um("""
                 SELECT f.id_fila, f.id_beneficiario, sf.descricao_status_fila
                 FROM fila_espera f
                 JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
-                WHERE f.id_fila = %s
-            """, (id_fila,))
+                WHERE f.id_fila = %s AND f.id_beneficiario = %s
+            """, (id_fila, id_benef))
 
             if not row:
-                return {'sucesso': False, 'mensagem': 'Solicitação não encontrada'}
-            if row['id_beneficiario'] != id_benef:
-                return {'sucesso': False, 'mensagem': 'Permissão negada'}
-            if row['descricao_status_fila'] != 'AGUARDANDO':
-                return {'sucesso': False, 'mensagem': 'Só é possível excluir solicitações que estejam aguardando.'}
+                return {'sucesso': False, 'mensagem': 'Solicitação não encontrada', 'http_status': 404}
 
+            if row['descricao_status_fila'] != 'AGUARDANDO':
+                return {'sucesso': False, 'mensagem': 'Só é possível excluir solicitações que estejam aguardando.', 'http_status': 400}
+
+            # EXCLUSÃO
             self.db.executar("DELETE FROM fila_espera WHERE id_fila = %s", (id_fila,))
+        
+            #  LOG
             self.db.registrar_log_auditoria(
                 id_usuario=usuario_id, 
                 tipo_acao='EXCLUIR_SOLICITACAO', 
                 detalhes=f'id_fila={id_fila}'
             )
 
+            # COMMIT
             try:
                 self.db.conn.commit()
             except Exception:
@@ -1134,3 +1281,341 @@ class Routes:
             import traceback
             traceback.print_exc()
             return {'sucesso': False, 'mensagem': str(e)}
+    def solicitar_recuperacao_senha(self, dados):
+        """
+        Gera código de recuperação para o email informado.
+        VALIDAÇÃO: Retorna erro se email não existe
+        """
+        try:
+            email = dados.get('email', '').strip()
+    
+            if not email:
+                return {'sucesso': False, 'mensagem': 'Email é obrigatório'}
+    
+            # Gera código (retorna None se email não existe ou não está ativo)
+            codigo = self.db.gerar_codigo_recuperacao(email)
+    
+            if codigo:
+                #Email existe - código gerado com sucesso
+                print(f"\n{'='*50}")
+                print(f"CÓDIGO DE RECUPERAÇÃO GERADO")
+                print(f"Email: {email}")
+                print(f"Código: {codigo}")
+                print(f"Válido por: 15 minutos")
+                print(f"{'='*50}\n")
+        
+                return {
+                    'sucesso': True,
+                    'mensagem': 'Código enviado com sucesso!',
+                    'codigo_debug': codigo  # APENAS PARA DESENVOLVIMENTO
+                }
+            else:
+                # Email NÃO existe ou não está ativo
+                print(f"⚠️ Tentativa de recuperação para email não cadastrado: {email}")
+                return {
+                    'sucesso': False,
+                    'mensagem': 'Email não encontrado. Verifique se está cadastrado no sistema.'
+                }
+        
+        except Exception as e:
+            print(f"Erro ao solicitar recuperação: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'sucesso': False, 'mensagem': 'Erro ao processar solicitação'}
+
+    def validar_codigo_recuperacao(self, dados):
+        """
+        Valida código informado pelo usuário.
+        """
+        try:
+            email = dados.get('email', '').strip()
+            codigo = dados.get('codigo', '').strip()
+        
+            if not email or not codigo:
+                return {'sucesso': False, 'mensagem': 'Email e código são obrigatórios'}
+        
+            status = self.db.validar_codigo_recuperacao(email, codigo)
+            # status pode ser 'OK', 'EXPIRADO', 'INVALIDO'
+            if status == 'OK':
+                return {'sucesso': True, 'mensagem': 'Código válido', 'status': 'OK'}
+            elif status == 'EXPIRADO':
+                return {
+                    'sucesso': False,
+                    'mensagem': 'Código expirado. Clique em solicitar novo código.',
+                    'status': 'EXPIRADO'
+                }
+            else:
+                return {
+                    'sucesso': False,
+                    'mensagem': 'Código inválido. Verifique e tente novamente.',
+                    'status': 'INVALIDO'
+                }
+            
+        except Exception as e:
+            print(f"Erro ao validar código: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def resetar_senha_com_codigo(self, dados):
+        """
+        Reseta senha após validação de código.
+        """
+        try:
+            email = dados.get('email', '').strip()
+            nova_senha = dados.get('nova_senha', '')
+        
+            if not email or not nova_senha:
+                return {'sucesso': False, 'mensagem': 'Todos os campos são obrigatórios'}
+        
+            # Valida força da senha (mesma validação do cadastro)
+            if len(nova_senha) < 8:
+                return {'sucesso': False, 'mensagem': 'Senha deve ter no mínimo 8 caracteres'}
+        
+            if self.db.resetar_senha(email, nova_senha):
+                self.db.registrar_log_auditoria(
+                    id_usuario=None,
+                    tipo_acao='RECUPERACAO_SENHA',
+                    detalhes=f'Senha resetada para {email}'
+                )
+            
+                return {
+                    'sucesso': True,
+                    'mensagem': 'Senha alterada com sucesso!',
+                    'redirect': '/login'
+                }
+            else:
+                return {'sucesso': False, 'mensagem': 'Erro ao resetar senha'}
+            
+        except Exception as e:
+            print(f"Erro ao resetar senha: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}    
+    
+    # ============================================
+    # ROTAS ADMINISTRATIVAS
+    # ============================================
+    def obter_metricas_admin(self):
+        """Retorna métricas gerais do sistema para o dashboard admin."""
+        try:
+            query = """
+                SELECT 
+                    (SELECT COUNT(*) FROM usuario) as total_usuarios,
+                    (SELECT COUNT(*) FROM doador) as total_doadores,
+                    (SELECT COUNT(*) FROM beneficiario) as total_beneficiarios,
+                    COALESCE(SUM(CASE WHEN sc.descricao_status = 'DISPONIVEL' THEN c.quantidade_disponivel_kwh ELSE 0 END), 0) as creditos_disponiveis,
+                    COALESCE(SUM(CASE WHEN sc.descricao_status != 'DISPONIVEL' THEN c.quantidade_disponivel_kwh ELSE 0 END), 0) as creditos_distribuidos,
+                    (SELECT COUNT(*) FROM fila_espera f JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila WHERE sf.descricao_status_fila = 'AGUARDANDO') as beneficiarios_na_fila,
+                    (SELECT COUNT(*) FROM log_auditoria WHERE DATE(data_hora) = CURRENT_DATE) as atividades_24h
+                FROM credito c
+                LEFT JOIN status_credito sc ON c.id_status_credito = sc.id_status_credito
+            """
+            metricas = self.db.buscar_um(query)
+            
+            return {
+                'sucesso': True,
+                'metricas': metricas or {
+                    'total_usuarios': 0,
+                    'total_doadores': 0,
+                    'total_beneficiarios': 0,
+                    'creditos_disponiveis': 0,
+                    'creditos_distribuidos': 0,
+                    'beneficiarios_na_fila': 0,
+                    'atividades_24h': 0
+                }
+            }
+        except Exception as e:
+            print(f"Erro ao obter métricas: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def listar_beneficiarios_admin(self):
+        """Lista todos os beneficiários para o admin."""
+        try:
+            query = """
+                SELECT 
+                    b.id_beneficiario,
+                    b.num_moradores,
+                    u.nome,
+                    u.email,
+                    rb.valor_renda,
+                    cb.media_kwh,
+                    sb.descricao_status_beneficiario
+                FROM beneficiario b
+                JOIN usuario u ON b.id_usuario = u.id_usuario
+                LEFT JOIN renda_beneficiario rb ON b.id_renda = rb.id_renda
+                LEFT JOIN consumo_beneficiario cb ON b.id_consumo = cb.id_consumo
+                LEFT JOIN status_beneficiario sb ON b.id_status_beneficiario = sb.id_status_beneficiario
+                ORDER BY b.id_beneficiario DESC
+                LIMIT 100
+            """
+            beneficiarios = self.db.buscar_todos(query)
+            
+            return {
+                'sucesso': True,
+                'beneficiarios': beneficiarios or []
+            }
+        except Exception as e:
+            print(f"Erro ao listar beneficiários: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def listar_doadores_admin(self):
+        """Lista todos os doadores para o admin."""
+        try:
+            query = """
+                SELECT 
+                    d.id_doador,
+                    d.data_cadastro,
+                    u.nome,
+                    u.email,
+                    cd.descricao_classificacao,
+                    COALESCE(
+                        (SELECT SUM(c.quantidade_disponivel_kwh + 
+                            COALESCE((SELECT SUM(t.quantidade_kwh)
+                                      FROM transacao t
+                                      JOIN status_transacao st ON t.id_status_transacao = st.id_status_transacao
+                                      WHERE t.id_credito = c.id_credito AND st.descricao_status = 'CONCLUIDA'), 0))
+                         FROM credito c
+                         WHERE c.id_doador = d.id_doador), 0
+                    ) as total_doado
+                FROM doador d
+                JOIN usuario u ON d.id_usuario = u.id_usuario
+                LEFT JOIN classificacao_doador cd ON d.id_classificacao = cd.id_classificacao
+                ORDER BY d.id_doador DESC
+                LIMIT 100
+            """
+            doadores = self.db.buscar_todos(query)
+            
+            return {
+                'sucesso': True,
+                'doadores': doadores or []
+            }
+        except Exception as e:
+            print(f"Erro ao listar doadores: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def listar_creditos_admin(self):
+        """Lista todos os créditos para o admin."""
+        try:
+            query = """
+                SELECT 
+                    c.id_credito,
+                    c.quantidade_disponivel_kwh,
+                    c.data_expiracao,
+                    sc.descricao_status as status,
+                    u.nome as nome_doador,
+                    d.id_doador
+                FROM credito c
+                JOIN status_credito sc ON c.id_status_credito = sc.id_status_credito
+                JOIN doador d ON c.id_doador = d.id_doador
+                JOIN usuario u ON d.id_usuario = u.id_usuario
+                ORDER BY c.id_credito DESC
+                LIMIT 100
+            """
+            creditos = self.db.buscar_todos(query)
+            
+            return {
+                'sucesso': True,
+                'creditos': creditos or []
+            }
+        except Exception as e:
+            print(f"Erro ao listar créditos: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def listar_fila_admin(self):
+        """Lista fila de espera completa para o admin."""
+        try:
+            query = """
+                SELECT 
+                    f.id_fila,
+                    f.id_beneficiario,
+                    u.nome,
+                    u.email,
+                    f.renda_familiar,
+                    f.consumo_medio_kwh,
+                    f.data_entrada,
+                    f.prioridade,
+                    sf.descricao_status_fila as status
+                FROM fila_espera f
+                JOIN beneficiario b ON f.id_beneficiario = b.id_beneficiario
+                JOIN usuario u ON b.id_usuario = u.id_usuario
+                JOIN status_fila sf ON f.id_status_fila = sf.id_status_fila
+                ORDER BY f.prioridade DESC, f.data_entrada ASC
+                LIMIT 100
+            """
+            fila = self.db.buscar_todos(query)
+            
+            return {
+                'sucesso': True,
+                'fila': fila or []
+            }
+        except Exception as e:
+            print(f"Erro ao listar fila: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def listar_logs_admin(self, limite=50):
+        """Lista logs de auditoria para o admin."""
+        try:
+            query = """
+                SELECT 
+                    la.id_log,
+                    la.data_hora,
+                    la.ip_acesso,
+                    la.detalhes,
+                    u.nome as nome_usuario,
+                    ta.descricao_tipo_acao,
+                    sl.descricao_status_log
+                FROM log_auditoria la
+                LEFT JOIN usuario u ON la.id_usuario = u.id_usuario
+                LEFT JOIN tipo_acao ta ON la.id_tipo_acao = ta.id_tipo_acao
+                LEFT JOIN status_log sl ON la.id_status_log = sl.id_status_log
+                ORDER BY la.data_hora DESC
+                LIMIT %s
+            """
+            logs = self.db.buscar_todos(query, (limite,))
+            
+            return {
+                'sucesso': True,
+                'logs': logs or []
+            }
+        except Exception as e:
+            print(f"Erro ao listar logs: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def executar_distribuicao_admin(self, limite=10):
+        """Executa distribuição de créditos (admin)."""
+        try:
+            resultado = self.db.executar_distribuicao(limite=limite)
+            
+            return {
+                'sucesso': True,
+                'resultado': resultado
+            }
+        except Exception as e:
+            print(f"Erro na distribuição: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+
+    def obter_estatisticas_sistema(self):
+        """Retorna estatísticas gerais do sistema."""
+        try:
+            query_registros = """
+                SELECT 
+                    (SELECT COUNT(*) FROM usuario) +
+                    (SELECT COUNT(*) FROM credito) +
+                    (SELECT COUNT(*) FROM transacao) as total
+            """
+            total_reg = self.db.buscar_um(query_registros)
+            
+            query_trans = "SELECT COUNT(*) as total FROM transacao"
+            total_trans = self.db.buscar_um(query_trans)
+            
+            query_logs = "SELECT COUNT(*) as total FROM log_auditoria"
+            total_logs = self.db.buscar_um(query_logs)
+            
+            return {
+                'sucesso': True,
+                'total_registros': total_reg['total'] if total_reg else 0,
+                'total_transacoes': total_trans['total'] if total_trans else 0,
+                'total_logs': total_logs['total'] if total_logs else 0
+            }
+        except Exception as e:
+            print(f"Erro ao obter estatísticas: {e}")
+            return {'sucesso': False, 'mensagem': str(e)}
+        print(f"Erro ao obter estatísticas: {e}")
+        return {'sucesso': False, 'mensagem': str(e)}

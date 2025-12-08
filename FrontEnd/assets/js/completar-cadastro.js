@@ -302,23 +302,8 @@ function mostrarFormularioDoador(me, camposDiv, form, titulo, subtitulo) {
                               mensagemErro.toLowerCase().includes('razão social');
         
           if (ehDuplicacao && classificacao === 'PESSOA_JURIDICA') {
-            // Mostrar modal/alerta estilizado com a mensagem exata solicitada
-            const mensagemPadrao = 'A RAZAO SOCIAL OU CNPJ INFORMADOS JÁ ESTAO SENDO UTILIZADOS NO SISTEMA. POR FAVOR, FAÇA LOGIN COM AS CREDENCIAIS EXISTENTES OU CADASTRE OUTRA EMPRESA';
-            if (window.showModalAlert) {
-              // utiliza o modal existente, apenas exibindo a mensagem sem redirecionamento
-              await window.showModalAlert({
-                title: '⚠️ Empresa Já Cadastrada',
-                message: mensagemPadrao,
-                type: 'warning',
-                buttons: [ { label: 'Fechar', value: 'ok', class: 'btn-primary' } ]
-              });
-              // Não faz redirecionamento — apenas fecha o modal
-              return;
-            } else {
-              // fallback simples: manter alert padrão, sem redirecionamento
-              alert(mensagemPadrao);
-              return;
-            }
+            showModalEmpresaCadastrada();
+            return;
           } else {
           if (window.showModalAlert) {
             await window.showModalAlert({ 
@@ -340,6 +325,43 @@ function mostrarFormularioDoador(me, camposDiv, form, titulo, subtitulo) {
       }
     }
   };
+}
+
+// Adicione esta função no final do arquivo:
+function showModalEmpresaCadastrada() {
+  const modal = document.getElementById('modalEmpresaCadastrada');
+  if (!modal) {
+    const html = `
+      <div class="modal-overlay" id="modalEmpresaCadastrada">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-icon warning">
+              <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="modal-header-text">
+              <h2>Empresa já cadastrada</h2>
+              <small>Ação necessária</small>
+            </div>
+          </div>
+          <div class="modal-body">
+            A razão social ou CNPJ informados já estão sendo utilizados no sistema. Por favor, faça login com as credenciais existentes ou cadastre outra empresa.
+          </div>
+          <div class="modal-footer">
+            <button class="modal-btn-primary" onclick="closeModalEmpresaCadastrada()">
+              <i class="fas fa-check"></i> Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+  document.getElementById('modalEmpresaCadastrada').classList.add('active');
+}
+
+function closeModalEmpresaCadastrada() {
+  const modal = document.getElementById('modalEmpresaCadastrada');
+  if (modal) modal.classList.remove('active');
 }
 
 // ========================================
@@ -463,3 +485,33 @@ function mostrarFormularioBeneficiario(me, camposDiv, form, titulo, subtitulo) {
     }
   };
 }
+
+function getOrCreateModal(modalId, html) {
+  let modal = document.getElementById(modalId);
+  if (!modal) {
+    document.body.insertAdjacentHTML('beforeend', html);
+    modal = document.getElementById(modalId);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    });
+  }
+  return modal;
+}
+
+function closeModalInterativo(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+      m.classList.remove('active');
+    });
+  }
+});
