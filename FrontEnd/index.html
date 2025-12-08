@@ -265,7 +265,7 @@
               <i data-feather="chevron-down"></i>
             </button>
             <div class="faq__answer">
-              <p>Não! A operação é totalmente gratuita – você contribui apenas com o excedente que já teria naturalmente.</p>
+              <p>Não! A operação é totalmente gratuita — você contribui apenas com o excedente que já teria naturalmente.</p>
             </div>
           </div>
 
@@ -298,7 +298,7 @@
 
     async function carregarEstatisticasReais() {
       try {
-        console.log('🔄 Buscando estatísticas...');
+        console.log('📄 Buscando estatísticas...');
         
         const response = await fetch('/api/estatisticas-gerais', {
             method: 'GET',
@@ -350,197 +350,66 @@
         console.error('❌ Erro ao buscar estatísticas:', error);
         exibirEstatisticasPadrao();
       }
-  }
+    }
 
-function exibirEstatisticasPadrao() {
-    const elementoKwh = document.getElementById('total-kwh-distribuido');
-    const elementoFamilias = document.getElementById('familias-atendidas');
-    
-    if (elementoKwh) elementoKwh.textContent = '0 kWh';
-    if (elementoFamilias) elementoFamilias.textContent = '0';
-}
+    function exibirEstatisticasPadrao() {
+        const elementoKwh = document.getElementById('total-kwh-distribuido');
+        const elementoFamilias = document.getElementById('familias-atendidas');
+        
+        if (elementoKwh) elementoKwh.textContent = '0 kWh';
+        if (elementoFamilias) elementoFamilias.textContent = '0';
+    }
 
-    // ✅ FUNÇÃO PRINCIPAL: Verificar se usuário está logado e mostrar card
+    // ✅ FUNÇÃO PRINCIPAL: Verificar se usuário está logado e atualizar header
     async function verificarUsuarioLogado() {
       try {
-        // Tenta múltiplos endpoints para garantir que funcione
-        let data = null;
+        // Remove qualquer botão residual de dashboard do header
+        const existingHeaderBtn = document.getElementById('nav-dashboard-btn');
+        if (existingHeaderBtn) existingHeaderBtn.remove();
         
-        // Primeira tentativa: /api/meu-perfil
-        try {
-          const resp = await fetch('/api/meu-perfil', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache'
-            }
-          });
-          
-          if (resp.ok) {
-            data = await resp.json();
-          }
-        } catch (e) {
-          console.log('Primeira tentativa falhou, tentando alternativa...');
-        }
+        const existingMobileBtn = document.getElementById('mobile-dashboard-btn');
+        if (existingMobileBtn) existingMobileBtn.remove();
+        
+        const resp = await fetch('/api/meu-perfil', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }
+        });
 
-        // Segunda tentativa: verificar se há dados de sessão
-        if (!data || !data.sucesso) {
-          try {
-            const resp2 = await fetch('/api/beneficiario/dados', {
-              credentials: 'include'
-            });
-            if (resp2.ok) {
-              const benefData = await resp2.json();
-              if (benefData.sucesso) {
-                data = {
-                  sucesso: true,
-                  usuario_id: benefData.dados?.usuario_id || true,
-                  nome: benefData.dados?.nome || 'Usuário',
-                  tipo: 'BENEFICIARIO'
-                };
-              }
-            }
-          } catch (e) {
-            // Ignora
-          }
-        }
+        const data = resp.ok ? await resp.json() : null;
 
-        // Terceira tentativa: verificar doador
-        if (!data || !data.sucesso) {
-          try {
-            const resp3 = await fetch('/api/doador/dados', {
-              credentials: 'include'
-            });
-            if (resp3.ok) {
-              const doadorData = await resp3.json();
-              if (doadorData.sucesso) {
-                data = {
-                  sucesso: true,
-                  usuario_id: doadorData.dados?.usuario_id || true,
-                  nome: doadorData.dados?.nome || doadorData.dados?.razao_social || 'Usuário',
-                  tipo: 'DOADOR'
-                };
-              }
-            }
-          } catch (e) {
-            // Ignora
-          }
-        }
+        // Se usuário autenticado, mostra apenas o card de boas-vindas
+        if (data && data.sucesso) {
+          const tipo = (data.tipo || '').toUpperCase();
+          const nome = data.dados?.nome || data.nome || 'Usuário';
 
-        // Se conseguiu dados de alguma fonte
-        if (data && data.sucesso && data.usuario_id) {
-          console.log('✅ Usuário logado detectado:', data.nome, '-', data.tipo);
-          
-          // 1. ESCONDER BOTÕES DE LOGIN (desktop e mobile)
+          // Esconde os botões de login (desktop e mobile)
           const btnLoginDesktop = document.getElementById('nav-login-btn');
           const btnLoginMobile = document.getElementById('mobile-login-btn');
-          
-          if (btnLoginDesktop) {
-            btnLoginDesktop.style.display = 'none';
-          }
-          
-          if (btnLoginMobile) {
-            btnLoginMobile.style.display = 'none';
-          }
+          if (btnLoginDesktop) btnLoginDesktop.style.display = 'none';
+          if (btnLoginMobile) btnLoginMobile.style.display = 'none';
 
-          // 2. MOSTRAR CARD DE BOAS-VINDAS
+          // Mostra o cartão de boas-vindas com botão para acessar dashboard
           const cardDashboard = document.getElementById('card-dashboard-logado');
           const nomeUsuarioCard = document.getElementById('nome-usuario-card');
           const btnAcessarDashboard = document.getElementById('btn-acessar-dashboard');
-
+          
           if (cardDashboard && nomeUsuarioCard && btnAcessarDashboard) {
-            nomeUsuarioCard.textContent = `Olá, ${data.nome}!`;
+            nomeUsuarioCard.textContent = `Olá, ${nome}!`;
             cardDashboard.style.display = 'block';
-
-            // 3. CONFIGURAR CLIQUE DO BOTÃO PARA IR AO DASHBOARD CORRETO
+            
+            // Define o link correto baseado no tipo de usuário
             btnAcessarDashboard.onclick = () => {
-              if (data.tipo === 'ADMINISTRADOR') {
-                window.location.href = '/crud';
-              } else if (data.tipo === 'BENEFICIARIO') {
-                window.location.href = '/painel-beneficiario';
-              } else if (data.tipo === 'DOADOR') {
-                window.location.href = '/painel-doador';
-              } else {
-                window.location.href = '/';
-              }
+              const dashboardUrl = tipo === 'ADMINISTRADOR' ? '/crud' : 
+                                   (tipo === 'BENEFICIARIO' ? '/painel-beneficiario' : '/painel-doador');
+              window.location.href = dashboardUrl;
             };
           }
-        } else {
-          console.log('ℹ️ Usuário não logado - página inicial normal');
         }
       } catch (err) {
-        console.log('ℹ️ Erro ao verificar usuário:', err.message);
+        console.log('ℹ️ Erro ao verificar usuário:', err && err.message);
       }
     }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-    await carregarEstatisticasReais();
-});
-
-async function carregarEstatisticasReais() {
-    try {
-        console.log('📊 Buscando estatísticas do banco...');
-        
-        const response = await fetch('/api/estatisticas-gerais', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache'
-            }
-        });
-
-        if (response.ok) {
-            const resultado = await response.json();
-            console.log('✅ Estatísticas recebidas:', resultado);
-            
-            if (resultado.sucesso && resultado.dados) {
-                const { total_kwh, familias_atendidas } = resultado.dados;
-                
-                // Formata kWh para exibição
-                let kwhFormatado;
-                if (total_kwh >= 1000000) {
-                    kwhFormatado = (total_kwh / 1000000).toFixed(1) + 'M kWh';
-                } else if (total_kwh >= 1000) {
-                    kwhFormatado = (total_kwh / 1000).toFixed(1) + 'K kWh';
-                } else {
-                    kwhFormatado = total_kwh.toFixed(0) + ' kWh';
-                }
-                
-                // Atualiza elementos do DOM
-                const elementoKwh = document.getElementById('total-kwh-distribuido');
-                const elementoFamilias = document.getElementById('familias-atendidas');
-                
-                if (elementoKwh) {
-                    elementoKwh.textContent = kwhFormatado;
-                    console.log('✅ kWh atualizado:', kwhFormatado);
-                }
-                
-                if (elementoFamilias) {
-                    elementoFamilias.textContent = familias_atendidas;
-                    console.log('✅ Famílias atualizadas:', familias_atendidas);
-                }
-            } else {
-                console.error('❌ Dados inválidos:', resultado);
-                exibirEstatisticasPadrao();
-            }
-        } else {
-            console.error('❌ Erro HTTP:', response.status);
-            exibirEstatisticasPadrao();
-        }
-    } catch (error) {
-        console.error('❌ Erro ao buscar estatísticas:', error);
-        exibirEstatisticasPadrao();
-    }
-}
-
-function exibirEstatisticasPadrao() {
-    const elementoKwh = document.getElementById('total-kwh-distribuido');
-    const elementoFamilias = document.getElementById('familias-atendidas');
-    
-    if (elementoKwh) elementoKwh.textContent = '0 kWh';
-    if (elementoFamilias) elementoFamilias.textContent = '0';
-}
   </script>
 
   <script src="/assets/js/main.js"></script>

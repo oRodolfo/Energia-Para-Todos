@@ -784,21 +784,8 @@
             <span>Créditos</span>
           </a>
         </li>
-        <li class="menu-item">
-          <a href="#" class="menu-link" data-page="fila">
-            <i class="fas fa-list-ol"></i>
-            <span>Fila de Espera</span>
-          </a>
-        </li>
 
         <div class="menu-section">Sistema</div>
-
-        <li class="menu-item">
-          <a href="#" class="menu-link" data-page="logs">
-            <i class="fas fa-history"></i>
-            <span>Logs de Auditoria</span>
-          </a>
-        </li>
         <li class="menu-item">
           <a href="/" class="menu-link">
             <i class="fas fa-home"></i>
@@ -1124,32 +1111,6 @@
     <div class="table-container" id="container-creditos"></div>
   </div>
 
-  <!-- AÇÃO: DISTRIBUIR CRÉDITOS -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-title">
-        <i class="fas fa-share-alt"></i>
-        Distribuir Créditos Manualmente
-      </div>
-    </div>
-    
-    <form id="form-distribuir">
-      <div class="form-grid">
-        <div class="form-group">
-          <label><i class="fas fa-hashtag"></i> Limite de Beneficiários</label>
-          <input type="number" name="limite" value="10" min="1" max="100" required>
-          <small style="color: var(--color-text-muted); font-size: 0.8rem;">
-            Número máximo de beneficiários a atender
-          </small>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary">
-        <i class="fas fa-paper-plane"></i> Executar Distribuição
-      </button>
-    </form>
-  </div>
-</div>
-
 <!-- PÁGINA: FILA -->
 <div id="fila" class="page">
   <div class="section">
@@ -1246,7 +1207,7 @@
     // ============================================
     async function verificarPermissao() {
       try {
-        const response = await fetch('/api/meu-perfil');
+        const response = await fetch('/api/meu-perfil', { credentials: 'include' });
         const data = await response.json();
 
         if (!data.sucesso || data.tipo !== 'ADMINISTRADOR') {
@@ -1356,7 +1317,7 @@
     // ============================================
     async function carregarDashboard() {
       try {
-        const response = await fetch('/api/admin/metricas');
+        const response = await fetch('/api/admin/metricas', { credentials: 'include' });
         const data = await response.json();
 
         if (data.sucesso) {
@@ -1415,7 +1376,7 @@
         loading.classList.add('active');
         container.innerHTML = '';
 
-        const response = await fetch('/api/usuarios');
+        const response = await fetch('/api/usuarios', { credentials: 'include' });
         const data = await response.json();
 
         if (data.usuarios && data.usuarios.length > 0) {
@@ -1526,7 +1487,8 @@
         const response = await fetch('/usuario/excluir', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData
+          body: formData,
+          credentials: 'include'
         });
 
         const data = await response.json();
@@ -1559,7 +1521,8 @@ document.getElementById('form-atualizar').addEventListener('submit', async (e) =
     const formData = new FormData(form);
     const response = await fetch('/usuario/atualizar-dados', {
       method: 'POST',
-      body: new URLSearchParams(formData)
+      body: new URLSearchParams(formData),
+      credentials: 'include'
     });
 
     const data = await response.json();
@@ -1593,7 +1556,8 @@ document.getElementById('form-alterar-senha').addEventListener('submit', async (
     const formData = new FormData(form);
     const response = await fetch('/usuario/alterar-senha', {
       method: 'POST',
-      body: new URLSearchParams(formData)
+      body: new URLSearchParams(formData),
+      credentials: 'include'
     });
 
     const data = await response.json();
@@ -1649,7 +1613,7 @@ document.getElementById('form-excluir').addEventListener('submit', async (e) => 
         loading.classList.add('active');
         container.innerHTML = '';
 
-        const response = await fetch('/api/admin/beneficiarios');
+        const response = await fetch('/api/admin/beneficiarios', { credentials: 'include' });
         const data = await response.json();
 
         if (data.beneficiarios && data.beneficiarios.length > 0) {
@@ -1713,7 +1677,7 @@ document.getElementById('form-excluir').addEventListener('submit', async (e) => 
     loading.classList.add('active');
     container.innerHTML = '';
 
-    const response = await fetch('/api/admin/doadores');
+    const response = await fetch('/api/admin/doadores', { credentials: 'include' });
     const data = await response.json();
 
     if (data.doadores && data.doadores.length > 0) {
@@ -1772,7 +1736,7 @@ async function carregarCreditos() {
     loading.classList.add('active');
     container.innerHTML = '';
 
-    const response = await fetch('/api/admin/creditos');
+    const response = await fetch('/api/admin/creditos', { credentials: 'include' });
     const data = await response.json();
 
     if (data.creditos && data.creditos.length > 0) {
@@ -1827,45 +1791,47 @@ async function carregarCreditos() {
 }
 
 // DISTRIBUIR CRÉDITOS
-document.getElementById('form-distribuir').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const btn = form.querySelector('button[type="submit"]');
-  const originalText = btn.innerHTML;
-  
-  if (!confirm('⚡ Executar distribuição automática de créditos?')) {
-    return;
-  }
+{
+  const formDistribuir = document.getElementById('form-distribuir');
+  if (formDistribuir) {
+    formDistribuir.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const btn = form.querySelector('button[type="submit"]');
+      const originalText = btn ? btn.innerHTML : '';
+      
+      if (!confirm('⚡ Executar distribuição automática de créditos?')) {
+        return;
+      }
 
-  try {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Distribuindo...';
-    
-    const limite = form.querySelector('[name="limite"]').value;
-    const response = await fetch('/api/admin/distribuir', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ limite: parseInt(limite) })
+      try {
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Distribuindo...'; }
+        const limite = form.querySelector('[name="limite"]') ? form.querySelector('[name="limite"]').value : 10;
+        const response = await fetch('/api/admin/distribuir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limite: parseInt(limite) })
+        });
+
+        const data = await response.json();
+        
+        if (data.sucesso) {
+          mostrarAlerta(`✓ Distribuição concluída! ${data.resultado?.beneficiarios_atendidos || 0} beneficiários atendidos`, 'success');
+          await carregarCreditos();
+          await carregarFila();
+          await carregarDashboard();
+        } else {
+          mostrarAlerta('✖ ' + (data.mensagem || 'Erro ao distribuir'), 'error');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('✖ Erro ao processar requisição', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+      }
     });
-
-    const data = await response.json();
-    
-    if (data.sucesso) {
-      mostrarAlerta(`✓ Distribuição concluída! ${data.resultado.beneficiarios_atendidos} beneficiários atendidos`, 'success');
-      await carregarCreditos();
-      await carregarFila();
-      await carregarDashboard();
-    } else {
-      mostrarAlerta('✖ ' + (data.mensagem || 'Erro ao distribuir'), 'error');
-    }
-  } catch (error) {
-    console.error('Erro:', error);
-    mostrarAlerta('✖ Erro ao processar requisição', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = originalText;
   }
-});
+}
 
 // ============================================
 // CARREGAR FILA
@@ -1878,10 +1844,17 @@ async function carregarFila() {
     loading.classList.add('active');
     container.innerHTML = '';
 
-    const response = await fetch('/api/admin/fila');
+    const response = await fetch('/api/admin/fila', {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
     const data = await response.json();
 
-    if (data.fila && data.fila.length > 0) {
+    if (data.sucesso && data.fila && data.fila.length > 0) {
       let html = `
         <table>
           <thead>
@@ -1914,7 +1887,7 @@ async function carregarFila() {
 
       html += '</tbody></table>';
       container.innerHTML = html;
-      mostrarAlerta(`✓ ${data.fila.length} beneficiários na fila!`, 'success');
+      mostrarAlerta(`✅ ${data.fila.length} beneficiários na fila!`, 'success');
     } else {
       container.innerHTML = `
         <div class="empty-state">
@@ -1926,6 +1899,13 @@ async function carregarFila() {
     }
   } catch (error) {
     console.error('Erro:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>Erro ao carregar</h3>
+        <p>${error.message}</p>
+      </div>
+    `;
     mostrarAlerta('❌ Erro ao carregar fila', 'error');
   } finally {
     loading.classList.remove('active');
@@ -1939,16 +1919,26 @@ async function carregarLogs(limite = 50) {
   const container = document.getElementById('container-logs') || document.getElementById('container-atividades');
   const loading = document.getElementById('loading-logs') || document.getElementById('loading-atividades');
   
-  if (!container) return;
+  if (!container) {
+    console.error('Container de logs não encontrado');
+    return;
+  }
 
   try {
     loading.classList.add('active');
     container.innerHTML = '';
 
-    const response = await fetch(`/api/admin/logs?limite=${limite}`);
+    const response = await fetch(`/api/admin/logs?limite=${limite}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
     const data = await response.json();
 
-    if (data.logs && data.logs.length > 0) {
+    if (data.sucesso && data.logs && data.logs.length > 0) {
       let html = `
         <table>
           <thead>
@@ -1987,6 +1977,13 @@ async function carregarLogs(limite = 50) {
     }
   } catch (error) {
     console.error('Erro:', error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>Erro ao carregar logs</h3>
+        <p>${error.message}</p>
+      </div>
+    `;
   } finally {
     loading.classList.remove('active');
   }
@@ -1997,7 +1994,7 @@ async function carregarLogs(limite = 50) {
 // ============================================
 async function carregarEstatisticasSistema() {
   try {
-    const response = await fetch('/api/admin/estatisticas');
+    const response = await fetch('/api/admin/estatisticas', { credentials: 'include' });
     const data = await response.json();
 
     if (data.sucesso) {

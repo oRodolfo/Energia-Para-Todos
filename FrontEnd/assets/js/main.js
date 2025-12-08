@@ -82,14 +82,19 @@ document.querySelectorAll('.faq__question').forEach(btn => {
 
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Pega o elemento do botão de login pelo ID
-    const botaoLogin = document.getElementById('login-button-container');
-    
-    // 2. Verifica se o usuário está logado (baseado no Local Storage)
-    const estaLogado = localStorage.getItem('usuarioLogado') === 'true';
-
-    // 3. Se estiver logado, esconde o botão
-    if (estaLogado && botaoLogin) {
-        // Usa 'display: none' para remover o elemento e o espaço que ele ocupa
-        botaoLogin.style.display = 'none'; 
+  // Use backend session to decide logged state
+  (async () => {
+    try {
+      const resp = await fetch('/api/meu-perfil', { credentials: 'include' });
+      const data = resp.ok ? await resp.json() : null;
+      if (data && data.sucesso) {
+        const btnLoginDesktop = document.getElementById('nav-login-btn');
+        const btnLoginMobile = document.getElementById('mobile-login-btn');
+        if (btnLoginDesktop) btnLoginDesktop.style.display = 'none';
+        if (btnLoginMobile) btnLoginMobile.style.display = 'none';
+      }
+    } catch (e) {
+      // ignore
     }
+  })();
 });
