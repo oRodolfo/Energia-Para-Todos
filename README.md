@@ -3,34 +3,84 @@
 ### Projeto Interdisciplinar – Sistemas de Informação  
 **2º Ano | 4º Período**
 
-Plataforma solidária que conecta pessoas e empresas com excedente de energia solar a famílias e comunidades em situação de vulnerabilidade, democratizando o acesso à energia limpa e sustentável.
+Plataforma social e tecnológica que conecta doadores de créditos de energia solar a famílias e comunidades em situação de vulnerabilidade, democratizando o acesso à energia limpa, sustentável e acessível.
 
 ---
 
 ## 🌍 Sobre o Projeto  
 
-O Energia Para Todos é uma iniciativa tecnológica e social que transforma créditos de energia solar excedentes em impacto real, conectando doadores a beneficiários por meio de uma plataforma web integrada.
+Energia Para Todos nasceu como uma iniciativa acadêmica alinhada ao ODS 7 – Energia Limpa e Acessível, buscando reduzir desigualdades energéticas e promover impacto social por meio da redistribuição de créditos solares.
 
-A proposta surgiu da necessidade de inclusão energética, aproveitando recursos já existentes e promovendo sustentabilidade ambiental e social.
+O sistema possibilita:
 
-O projeto está alinhado ao Objetivo de Desenvolvimento Sustentável (ODS) 7 – Energia Limpa e Acessível, com foco em:
+  - Cadastro e autenticação de usuários (Doadores, Beneficiários e Administradores)
 
-- Acesso universal e acessível à energia;
-- Uso eficiente e sustentável de energias renováveis;
-- Ampliação de infraestrutura tecnológica para comunidades vulneráveis
+  - Doação e distribuição automática de créditos de energia
+
+  - Gestão de fila com critérios sociais
+
+  - Painéis dinâmicos, relatórios e indicadores
+
+  - Transparência total por meio de logs e auditoria
+
+A solução entrega uma plataforma robusta, modular e escalável, sustentada por boas práticas de Engenharia de Software. 
+
+---
+
+##  🎯 Objetivo do Projeto
+
+ - Criar uma plataforma web funcional e responsiva que permite:
+
+ - Doadores registrarem créditos excedentes de energia solar.
+
+ - Beneficiários solicitarem créditos com base em critérios socioeconômicos.
+
+ - Administração monitorar operações, usuários e distribuição energética em tempo real.
+
 ---
 
 ## 💡 Principais Funcionalidades  
 
-- Cadastro e autenticação de doadores, beneficiários e administradores.
-- Registro e gerenciamento de créditos de energia (kWh).
-- Fila de espera automática com critérios de priorização social (renda, consumo, tempo de fila).
-- Distribuição proporcional de créditos de forma automatizada.
-- Painéis de transparência (públicos e individuais) com indicadores sociais e energéticos.
-- Relatórios de impacto (energia doada, famílias atendidas, economia gerada).
-- Auditoria completa de transações, garantindo rastreabilidade e segurança.
-- Simulação de impacto para o doador ("X kWh ajuda Y famílias por Z meses"). 
+👤 Usuários e Perfis
+- Cadastro e login unificado (com abas dinâmicas)
+- Perfis distintos: Doador, Beneficiário e Administrador
+- Recuperação de senha
+- Controle de sessão e autenticação
 
+🤝 Doadores
+- Registro de créditos de energia (kWh)
+- Acompanhamento de impacto social gerado
+- Histórico completo de doações
+- Simulador de impacto energético (kWh → famílias atendidas)
+
+🏠 Beneficiários
+- Entrada dinâmica na fila (priorização automática)
+- Solicitação de créditos
+- Dashboard com:
+  - Posição na fila
+  - Consumo médio
+  - Histórico de solicitações
+- Previsão de atendimento
+
+🛠️ Administrador
+- Painel completo via crud.html
+- Gestão de:
+  - Usuários
+  - Créditos
+  - Fila
+  - Transações
+- Métricas consolidadas via view v_metricas_admin
+- Configuração dos pesos de priorização social
+- Acesso ao painel de transparência e aos logs de auditoria
+
+⚙️ Lógica de Negócio
+
+- Distribuição proporcional e automática de créditos
+- Critérios de priorização:
+    - Renda
+- Auditoria completa de todas as ações
+- Expiração automática e reaproveitamento de créditos
+- Gatilhos e funções SQL para manter fila e status atualizados automaticamente
 ---
 
 ## 🚀 Tecnologias Utilizadas  
@@ -67,7 +117,7 @@ O modelo garante integridade, rastreabilidade e escalabilidade, sustentando toda
 - completar-cadastro.html → Formulário dinâmico conforme o tipo de perfil.
 - dashboard-doador.html → Visualização de créditos e impacto social.
 - dashboard-beneficiario.html → Fila de atendimento e histórico de solicitações.
-- crud.html → Interface de testes para operações básicas no banco.
+- crud.html → Dashboard interativo do Administrador do sistema.
 Todos os front-ends comunicam-se com o backend via fetch() → routes.py, retornando dados JSON.
 ---
 
@@ -144,6 +194,38 @@ ProjetoPiEnergia/
         ├── js/
         └── images/
 ```
+---
+
+## 🧩 Destaques Técnicos do Back-End
+- Entidades Principais
+  - PerfilUsuario (classe base)
+  - Administrador
+  - Doador
+  - Beneficiario
+  - Credito
+  - Transacao
+  - FilaEspera + ItemFila
+- Serviços
+  - DistribuidorCreditos – lógica central de distribuição
+  - GeradorRelatorio – métricas e estatísticas
+  - PainelTransparencia – indicadores públicos
+- Auditoria e Segurança
+  - Logs estruturados
+  - Criptografia de senhas
+  - Histórico de alterações (via Mixin)
+  - Validações duplas (front/back)
+   
+---
+
+## 🛠️ Segurança e Boas Práticas
+- Criptografia bcrypt (pgcrypto)
+- Sanitização / validação dupla
+- Proteção contra XSS
+- Princípios SOLID
+- Arquitetura por camadas
+- Baixo acoplamento e alta coesão
+- Auditoria completa das operações críticas
+
 ---
 🧩 Arquitetura do Sistema
 
